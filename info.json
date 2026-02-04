@@ -1,0 +1,884 @@
+{
+  "project": {
+    "name": "Smart Tourist Safety Monitoring & Incident Response System",
+    "description": "A technology-driven platform designed to ensure real-time safety, monitoring, and rapid incident response for tourists in remote, high-risk, or tourism-intensive regions",
+    "version": "1.0.0",
+    "phase": "Phase 1"
+  },
+  "architecture": {
+    "type": "API-first architecture",
+    "characteristics": [
+      "Stateless backend with JWT authentication",
+      "Real-time communication using WebSockets",
+      "Event-driven alerts",
+      "Optional IoT device ingestion",
+      "Blockchain for integrity anchoring only (no PII storage)",
+      "Modular and scalable services",
+      "Platform-independent clients"
+    ]
+  },
+  "components": {
+    "backend": {
+      "responsibility": "Central nervous system of the platform",
+      "technology_stack": {
+        "runtime": "Node.js",
+        "language": "TypeScript (strict)",
+        "framework": "NestJS-style modular architecture",
+        "database": "PostgreSQL",
+        "cache": "Redis (cache, geo-queries, sessions)",
+        "realtime": "Socket.IO",
+        "messaging": "Message Queue (planned for scale)",
+        "blockchain": "Hash anchoring only",
+        "storage": "Cloud storage for evidence & media"
+      },
+      "core_responsibilities": [
+        "Digital Tourist ID issuance",
+        "OTP authentication",
+        "Incident detection & escalation",
+        "Geo-fencing logic",
+        "AI anomaly detection",
+        "Police coordination",
+        "Blockchain anchoring",
+        "IoT data ingestion",
+        "Real-time event broadcasting"
+      ],
+      "design_rules": [
+        "No UI logic",
+        "No direct database access outside feature modules",
+        "No business logic inside socket handlers",
+        "Blockchain stores hashes only, never raw data",
+        "AI modules cannot mutate core data directly",
+        "All critical actions are auditable"
+      ],
+      "modules": [
+        "Application bootstrap & global middleware",
+        "Authentication & authorization",
+        "User management (tourists, police, admins)",
+        "Tourist Digital ID lifecycle",
+        "Geo-fencing & risk zones",
+        "Incident & panic handling",
+        "AI-based anomaly monitoring",
+        "Location & route tracking",
+        "IoT device ingestion",
+        "Notifications & alerts",
+        "Dashboards & analytics aggregation",
+        "Real-time socket gateway",
+        "Blockchain integrity layer",
+        "Shared utilities, DTOs, logging, validation"
+      ]
+    },
+    "dashboard": {
+      "name": "Dashboard Web Application (Authorities)",
+      "purpose": "Command, control, and situational awareness for authorities and tourism departments",
+      "technology_stack": {
+        "framework": "Next.js (App Router)",
+        "language": "TypeScript",
+        "styling": "Tailwind CSS",
+        "ui_library": "shadcn/ui",
+        "state_management": {
+          "ui_auth": "Recoil",
+          "server_data": "TanStack Query"
+        },
+        "realtime": "Socket.IO client",
+        "maps": "Map SDK"
+      },
+      "capabilities": [
+        "Live incident monitoring",
+        "Tourist verification",
+        "Geo-risk heatmaps",
+        "Cluster visualization",
+        "Officer coordination",
+        "Analytics and reporting",
+        "Role-based access views"
+      ],
+      "architecture_principles": [
+        "Feature-based organization",
+        "No API calls inside UI components",
+        "No business logic in pages",
+        "Server data handled only via query layer",
+        "Live updates handled only via socket layer",
+        "Views gated by role guards"
+      ],
+      "structure": [
+        "App shell and routing",
+        "Shared layout and UI components",
+        "Feature modules (incidents, tourists, alerts, analytics, verification, users)",
+        "Centralized API services",
+        "Global state store",
+        "Shared hooks and utilities"
+      ]
+    },
+    "mobile_app": {
+      "name": "Mobile Application (Tourists)",
+      "purpose": "Personal safety companion for tourists",
+      "technology_stack": {
+        "framework": "React Native",
+        "platform": "Expo",
+        "language": "TypeScript",
+        "styling": "NativeWind (Tailwind)",
+        "state_management": "Recoil",
+        "server_data": "TanStack Query",
+        "realtime": "Socket.IO client",
+        "device_apis": "GPS, sensors, background tasks"
+      },
+      "core_features": [
+        "Digital Tourist ID wallet",
+        "Safety score visualization",
+        "Geo-fence alerts",
+        "Panic button & SOS",
+        "Live location sharing (opt-in)",
+        "Multilingual & accessibility support"
+      ],
+      "principles": [
+        "OTP-only authentication",
+        "Offline-first panic system",
+        "Battery-aware background tracking",
+        "Strict permission-based access",
+        "Tracking always opt-in",
+        "Accessibility-first design"
+      ],
+      "structure": [
+        "App navigation & auth gating",
+        "Shared UI components",
+        "Feature modules (onboarding, auth, panic, tracking, geo-alerts, digital ID)",
+        "Centralized services (API, sockets, OTP)",
+        "Global state store",
+        "Localization & voice support",
+        "Assets & icons"
+      ]
+    }
+  },
+  "authentication_and_security": {
+    "authentication_types": {
+      "tourists": {
+        "method": "OTP-based authentication",
+        "identity": "Mobile number or passport-based identity",
+        "tokens": "Short-lived JWT access tokens with refresh tokens",
+        "password": false
+      },
+      "authorities": {
+        "method": "Username + password",
+        "tokens": "JWT-based authentication"
+      }
+    },
+    "rbac": {
+      "roles": [
+        {
+          "name": "Tourist",
+          "level": "USER",
+          "scope": "Mobile app only"
+        },
+        {
+          "name": "Police L1 (Operator)",
+          "level": "L1",
+          "scope": "Limited zone data"
+        },
+        {
+          "name": "Police L2 (Inspector)",
+          "level": "L2",
+          "scope": "District-wide"
+        },
+        {
+          "name": "Police L3 (Superintendent)",
+          "level": "L3",
+          "scope": "Multi-district"
+        },
+        {
+          "name": "Police L4 / Admin / Tourism Authority",
+          "level": "L4",
+          "scope": "Global"
+        }
+      ]
+    },
+    "security_principles": [
+      "Least privilege access",
+      "Role-gated APIs and UI views",
+      "End-to-end encryption",
+      "Automatic tourist data expiry after trip completion",
+      "Full audit trails",
+      "Privacy-by-design",
+      "Minimal data collection",
+      "Time-bound data retention",
+      "Explicit consent for tracking",
+      "Role-based data access",
+      "Immutable audit trails",
+      "No personal data stored on blockchain"
+    ]
+  },
+  "database_schema": {
+    "core_identity_and_access": {
+      "users": {
+        "description": "Represents all human users in the system (officers, admins, tourism officials)",
+        "responsibilities": [
+          "Authentication identity",
+          "Role assignment",
+          "Duty status",
+          "Zone assignments"
+        ],
+        "relationships": [
+          "One user → one role",
+          "One user → many zone assignments",
+          "One user → many incident assignments",
+          "One user → many audit logs"
+        ]
+      },
+      "roles": {
+        "description": "Defines access levels and authority boundaries",
+        "examples": ["L1 Operator", "L2 Inspector", "L3 Superintendent", "L4 Admin", "Tourist"],
+        "responsibilities": [
+          "Permission grouping",
+          "UI & API access control"
+        ],
+        "relationships": [
+          "One role → many users",
+          "One role → many permissions"
+        ]
+      },
+      "permissions": {
+        "description": "Defines fine-grained access rules",
+        "examples": [
+          "View incidents",
+          "Assign officers",
+          "Verify digital IDs",
+          "Export analytics"
+        ],
+        "relationships": [
+          "Many permissions → one role"
+        ]
+      }
+    },
+    "tourist_and_identity": {
+      "tourists": {
+        "description": "Represents a real-world visitor",
+        "responsibilities": [
+          "Identity anchor (not full KYC)",
+          "Contact & emergency linkage",
+          "Privacy lifecycle"
+        ],
+        "relationships": [
+          "One tourist → many trips",
+          "One tourist → one or more digital IDs",
+          "One tourist → many incidents"
+        ]
+      },
+      "tourist_trips": {
+        "description": "Represents one visit to the region",
+        "responsibilities": [
+          "Time-bounded travel session",
+          "Active/inactive lifecycle",
+          "Geo-fence relevance"
+        ],
+        "relationships": [
+          "One trip → one tourist",
+          "One trip → many locations",
+          "One trip → many incidents",
+          "One trip → one active digital ID"
+        ]
+      },
+      "digital_tourist_ids": {
+        "description": "System-issued digital ID",
+        "responsibilities": [
+          "Time-limited validity",
+          "Verification reference",
+          "Blockchain anchoring"
+        ],
+        "features": [
+          "Issued at entry points",
+          "Linked to trip duration only",
+          "Includes emergency contacts and itinerary summary",
+          "Anchored on blockchain for integrity (hash-only)"
+        ],
+        "relationships": [
+          "One digital ID → one trip",
+          "One digital ID → one blockchain record",
+          "One digital ID → many verification events"
+        ]
+      },
+      "digital_id_verifications": {
+        "description": "Tracks who verified what and when",
+        "responsibilities": [
+          "Audit trail",
+          "Trust & compliance"
+        ],
+        "relationships": [
+          "One verification → one digital ID",
+          "One verification → one officer"
+        ]
+      }
+    },
+    "location_zone_and_geofence": {
+      "zones": {
+        "description": "Represents geographical areas",
+        "examples": ["Districts", "Forest zones", "Beaches", "Markets"],
+        "responsibilities": [
+          "Risk categorization",
+          "Authority mapping"
+        ],
+        "relationships": [
+          "One zone → many geo-fences",
+          "One zone → many incidents",
+          "One zone → many officers"
+        ]
+      },
+      "geo_fences": {
+        "description": "Defines virtual boundaries",
+        "responsibilities": [
+          "Entry/exit detection",
+          "Risk escalation triggers"
+        ],
+        "features": [
+          "Virtual boundaries for sensitive areas",
+          "Automatic alerts on zone entry/exit",
+          "Risk escalation based on zone type"
+        ],
+        "relationships": [
+          "One geo-fence → one zone",
+          "One geo-fence → many geo-events"
+        ]
+      },
+      "geo_events": {
+        "description": "Represents movement-based events",
+        "examples": ["Entered restricted zone", "Exited safe area"],
+        "relationships": [
+          "One geo event → one trip",
+          "One geo event → one geo-fence"
+        ]
+      }
+    },
+    "incident_and_safety": {
+      "incidents": {
+        "description": "Represents any safety event",
+        "examples": [
+          "Panic alert",
+          "Lost tourist",
+          "Harassment",
+          "Pickpocketing",
+          "AI anomaly"
+        ],
+        "responsibilities": [
+          "Incident lifecycle",
+          "Escalation",
+          "Resolution"
+        ],
+        "relationships": [
+          "One incident → one trip (optional)",
+          "One incident → one zone",
+          "One incident → many officers",
+          "One incident → many actions",
+          "One incident → many evidence items"
+        ]
+      },
+      "incident_assignments": {
+        "description": "Tracks which officers are responsible",
+        "responsibilities": [
+          "Multi-officer coordination",
+          "Workload tracking"
+        ],
+        "relationships": [
+          "One assignment → one incident",
+          "One assignment → one officer"
+        ]
+      },
+      "incident_timeline_actions": {
+        "description": "Tracks everything that happened in an incident",
+        "examples": ["Created", "Escalated", "Officer assigned", "Resolved"],
+        "responsibilities": [
+          "Full auditability"
+        ],
+        "relationships": [
+          "One action → one incident",
+          "One action → one user (optional)"
+        ]
+      },
+      "evidence": {
+        "description": "Represents supporting material",
+        "examples": ["Images", "Audio", "Notes", "Reports"],
+        "responsibilities": [
+          "Integrity",
+          "Chain of custody"
+        ],
+        "relationships": [
+          "One evidence → one incident",
+          "One evidence → one blockchain hash"
+        ]
+      }
+    },
+    "realtime_and_tracking": {
+      "location_updates": {
+        "description": "Stores tourist location snapshots",
+        "responsibilities": [
+          "Last known location",
+          "Route reconstruction",
+          "AI analysis"
+        ],
+        "relationships": [
+          "One location update → one trip"
+        ],
+        "notes": [
+          "Time-series optimized",
+          "Old data auto-expired"
+        ]
+      },
+      "officer_presence": {
+        "description": "Tracks officer online / duty state",
+        "responsibilities": [
+          "Availability detection",
+          "Live tracking"
+        ],
+        "relationships": [
+          "One presence record → one officer"
+        ]
+      }
+    },
+    "ai_and_monitoring": {
+      "ai_alerts": {
+        "description": "System-generated warnings",
+        "examples": [
+          "Prolonged inactivity",
+          "Route deviation",
+          "Sudden signal loss"
+        ],
+        "responsibilities": [
+          "Early warning",
+          "Investigation triggers"
+        ],
+        "features": [
+          "Detects abnormal movement patterns",
+          "Flags prolonged inactivity or signal loss",
+          "Identifies route deviations",
+          "Generates early warnings for investigation"
+        ],
+        "relationships": [
+          "One AI alert → one trip",
+          "One AI alert → one incident (optional)"
+        ]
+      },
+      "safety_scores": {
+        "description": "Computed risk/safety metrics",
+        "responsibilities": [
+          "Tourist safety scoring",
+          "Zone risk scoring"
+        ],
+        "relationships": [
+          "One score → one trip or zone"
+        ]
+      }
+    },
+    "iot_and_wearable": {
+      "devices": {
+        "description": "Physical safety devices",
+        "examples": ["Smart bands", "GPS tags"],
+        "relationships": [
+          "One device → one tourist",
+          "One device → one trip"
+        ]
+      },
+      "device_telemetry": {
+        "description": "Health & signal data",
+        "responsibilities": [
+          "Continuous monitoring",
+          "SOS detection"
+        ],
+        "relationships": [
+          "One telemetry → one device"
+        ]
+      }
+    },
+    "notification_and_communication": {
+      "notifications": {
+        "description": "Messages sent to users",
+        "examples": ["SMS", "Push", "Email"],
+        "relationships": [
+          "One notification → one user or tourist",
+          "One notification → one incident (optional)"
+        ]
+      },
+      "communication_logs": {
+        "description": "Critical communications tracking",
+        "examples": ["Officer coordination", "Emergency calls"],
+        "responsibilities": [
+          "Accountability"
+        ]
+      }
+    },
+    "blockchain_and_audit": {
+      "blockchain_records": {
+        "description": "Hash references for integrity",
+        "responsibilities": [
+          "Integrity verification",
+          "Tamper resistance"
+        ],
+        "relationships": [
+          "One blockchain record → one digital ID or evidence"
+        ]
+      },
+      "audit_logs": {
+        "description": "Tracks every sensitive action",
+        "responsibilities": [
+          "Compliance",
+          "Security investigations"
+        ],
+        "relationships": [
+          "One audit log → one user",
+          "One audit log → one entity"
+        ]
+      }
+    },
+    "relationship_summary": {
+      "core_flows": [
+        "Tourist → Trips → Digital ID",
+        "Trip → Incidents → Officers",
+        "Zone → Geo-Fences → Geo Events",
+        "Incident → Actions → Evidence",
+        "AI Alerts → Incidents",
+        "Users → Roles → Permissions",
+        "Everything important → Audit Logs",
+        "Critical records → Blockchain hashes"
+      ]
+    }
+  },
+  "dashboard_data_contracts": {
+    "global_requirements": {
+      "authentication_context": {
+        "description": "Required on every request",
+        "fields": [
+          "Officer ID",
+          "Role (L1 / L2 / L3 / L4)",
+          "Assigned zones / districts",
+          "Permissions scope"
+        ],
+        "role_awareness": {
+          "L1": "Limited zone data",
+          "L2": "District-wide",
+          "L3": "Multi-district",
+          "L4": "Global"
+        }
+      },
+      "common_metadata": {
+        "description": "Required on most responses",
+        "fields": [
+          "Server timestamp (for Last Update)",
+          "Data freshness indicator",
+          "Optional deltas (change vs previous period)"
+        ]
+      }
+    },
+    "overview_safety_dashboard": {
+      "ui_elements": [
+        "Active Incidents",
+        "Officers Online",
+        "Tourists Monitored",
+        "Response Rate",
+        "Recent Incidents list",
+        "Zone Status summary"
+      ],
+      "high_level_metrics": {
+        "active_incidents": {
+          "fields": [
+            "Total count",
+            "Change in last hour",
+            "Severity breakdown (optional, future-proof)"
+          ]
+        },
+        "officers_online": {
+          "fields": [
+            "Total officers currently active",
+            "Delta since morning (or shift start)",
+            "On-duty vs off-duty split"
+          ]
+        },
+        "tourists_monitored": {
+          "fields": [
+            "Total active tourist sessions",
+            "New tourists today",
+            "Optional breakdown by zone"
+          ]
+        },
+        "response_rate": {
+          "fields": [
+            "Percentage of incidents responded within SLA",
+            "Classification label (Excellent / Good / Needs Attention)"
+          ]
+        }
+      },
+      "recent_incidents_feed": {
+        "fields": [
+          "Incident ID",
+          "Incident type (pickpocketing, lost tourist, harassment, etc.)",
+          "Severity (info / warning / critical)",
+          "Status (active / responding / resolved)",
+          "Location name (human-readable)",
+          "Geo coordinates (for map jump)",
+          "Time since reported",
+          "Assigned officer(s) summary"
+        ],
+        "sorting": "Latest activity",
+        "visibility": "Role-based (some incidents hidden for L1)"
+      },
+      "zone_status_panel": {
+        "aggregation": "Zones into risk states",
+        "per_zone_fields": [
+          "Zone ID",
+          "Zone name",
+          "Risk state (All Clear / Under Watch / Active Alert / Critical)",
+          "Active incident count",
+          "Last status change timestamp"
+        ]
+      }
+    },
+    "live_tracking": {
+      "description": "Map view - current and future support",
+      "tourist_live_tracking": {
+        "role_based": true,
+        "fields": [
+          "Tourist ID (masked)",
+          "Current coordinates",
+          "Last update timestamp",
+          "Safety score",
+          "Tracking consent status"
+        ]
+      },
+      "officer_live_tracking": {
+        "fields": [
+          "Officer ID",
+          "Current zone",
+          "Availability state",
+          "Assigned incidents"
+        ]
+      },
+      "geofence_events": {
+        "fields": [
+          "Entry / Exit events",
+          "Zone risk level",
+          "Triggered alerts (if any)"
+        ]
+      }
+    },
+    "incidents_module": {
+      "description": "Full incident lifecycle support",
+      "incident_list": {
+        "fields": [
+          "Incident ID",
+          "Type",
+          "Severity",
+          "Status",
+          "Zone / District",
+          "Created timestamp",
+          "Last updated timestamp",
+          "Reporting source (panic, AI, manual)",
+          "Assigned officers count"
+        ]
+      },
+      "incident_detail": {
+        "fields": [
+          "Full timeline (events)",
+          "Tourist digital ID reference",
+          "Last known location",
+          "Evidence metadata (not raw files)",
+          "Actions taken",
+          "AI flags (if applicable)"
+        ]
+      }
+    },
+    "digital_id_verification": {
+      "description": "Read-only verification APIs for dashboard",
+      "fields": [
+        "Validity status (active / expired / revoked)",
+        "Visit duration",
+        "Entry point",
+        "Assigned itinerary (high-level)",
+        "Emergency contacts (masked)",
+        "Blockchain verification hash",
+        "Verification timestamp"
+      ],
+      "security": [
+        "No raw Aadhaar / passport data ever sent to dashboard",
+        "Hash & masked identifiers only"
+      ]
+    },
+    "user_management": {
+      "user_list": {
+        "fields": [
+          "Officer ID",
+          "Name",
+          "Role (L2, L3, L4)",
+          "Assigned zone(s)",
+          "Duty status (on / off)",
+          "Online status",
+          "Permissions summary"
+        ]
+      },
+      "team_summary": {
+        "aggregations": [
+          "Total officers",
+          "On duty count",
+          "Off duty count",
+          "Optional: availability by role"
+        ]
+      },
+      "permissions_model": {
+        "ownership": "Backend owns permissions logic, not frontend",
+        "frontend_displays": [
+          "Role label",
+          "Allowed sections"
+        ]
+      }
+    },
+    "analytics_and_reports": {
+      "kpi_metrics": {
+        "metrics": [
+          "Total incidents (period-based)",
+          "Resolution rate",
+          "Average response time",
+          "Tourist safety score (aggregated)"
+        ],
+        "per_metric_fields": [
+          "Current value",
+          "Comparison vs previous period",
+          "Direction indicator (up / down)"
+        ]
+      },
+      "charts_data": {
+        "note": "Backend returns raw aggregated datasets, not chart-specific formats",
+        "datasets": [
+          "Incidents by type",
+          "Incidents by zone",
+          "Response time over time",
+          "Safety score trends"
+        ],
+        "visualization": "Frontend decides how to visualize"
+      }
+    },
+    "realtime_socket_events": {
+      "description": "Push updates, not polling",
+      "events": [
+        "New incident created",
+        "Incident status change",
+        "Officer online/offline",
+        "Panic triggered",
+        "Zone risk escalation"
+      ],
+      "event_structure": {
+        "fields": [
+          "Event type",
+          "Entity ID",
+          "Minimal payload",
+          "Timestamp"
+        ],
+        "note": "No heavy data in socket messages - frontend fetches details via API"
+      }
+    },
+    "error_and_empty_states": {
+      "scenarios": [
+        "No incidents",
+        "No officers online",
+        "Partial data availability",
+        "Permission-denied scenarios"
+      ],
+      "response_requirements": [
+        "Clear status",
+        "Safe defaults",
+        "No undefined fields"
+      ]
+    }
+  },
+  "features": {
+    "digital_tourist_id_platform": {
+      "description": "Secure, time-bound digital IDs",
+      "features": [
+        "Issued at entry points",
+        "Linked to trip duration only",
+        "Includes emergency contacts and itinerary summary",
+        "Anchored on blockchain for integrity (hash-only)"
+      ]
+    },
+    "ai_based_monitoring": {
+      "capabilities": [
+        "Detects abnormal movement patterns",
+        "Flags prolonged inactivity or signal loss",
+        "Identifies route deviations",
+        "Generates early warnings for investigation"
+      ]
+    },
+    "geofencing_and_risk_zones": {
+      "capabilities": [
+        "Virtual boundaries for sensitive areas",
+        "Automatic alerts on zone entry/exit",
+        "Risk escalation based on zone type"
+      ]
+    },
+    "realtime_communication": {
+      "capabilities": [
+        "Live updates via WebSockets",
+        "Panic alerts and incident broadcasts",
+        "Officer availability and coordination"
+      ]
+    },
+    "iot_integration": {
+      "optional": true,
+      "devices": [
+        "Smart bands or tags for high-risk activities",
+        "Continuous health and location telemetry",
+        "Manual SOS support"
+      ]
+    }
+  },
+  "target_users": {
+    "primary": [
+      "Tourists (domestic and international)",
+      "Police officers (L1-L4)",
+      "Tourism department officials"
+    ],
+    "secondary": [
+      "Emergency services",
+      "Local administration",
+      "Tourism operators (future scope)"
+    ]
+  },
+  "objectives": [
+    "Ensure tourist safety without intrusive surveillance",
+    "Enable real-time incident detection and response",
+    "Provide secure, time-bound digital tourist identities",
+    "Support data-driven decision-making for authorities",
+    "Maintain strict privacy and compliance standards",
+    "Improve trust in tourism infrastructure"
+  ],
+  "problem_statement": {
+    "challenges": [
+      "Delayed response to tourist emergencies",
+      "Lack of real-time location visibility",
+      "Difficulty verifying tourist identity during incidents",
+      "Manual handling of missing or distressed tourist cases",
+      "No unified platform for police and tourism authorities",
+      "Poor coordination between officers across zones",
+      "Privacy concerns with traditional tracking systems"
+    ],
+    "existing_solutions_problems": [
+      "Reactive instead of preventive",
+      "Manual and error-prone",
+      "Not scalable",
+      "Not privacy-conscious"
+    ]
+  },
+  "expected_impact": [
+    "Faster emergency response times",
+    "Reduced missing tourist cases",
+    "Improved tourist confidence",
+    "Better coordination among authorities",
+    "Data-backed policy and safety planning",
+    "Scalable model for nationwide adoption"
+  ],
+  "project_scope_and_vision": {
+    "design_characteristics": [
+      "Academically strong",
+      "Technically defensible",
+      "Production-oriented",
+      "Extensible for future enhancements"
+    ],
+    "evolution_potential": [
+      "State-level tourism safety platform",
+      "National tourist safety infrastructure",
+      "Blueprint for smart-city safety systems"
+    ]
+  }
+}
