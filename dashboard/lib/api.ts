@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create a new axios instance with a custom config
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Point to backend
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
     headers: {
         'Content-Type': 'application/json',
     },
