@@ -2,41 +2,38 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Users, ChevronRight, Check } from "lucide-react"
-import api from "@/lib/api"
+import { Users, Check, Loader2 } from "lucide-react"
+import { useUsers } from "@/features/users/hooks/use-users"
 import { Card } from "@/components/ui/card"
 
 export function RoleSwitcher() {
-    const [users, setUsers] = useState<any[]>([])
+    const { data: usersData, isLoading } = useUsers()
     const [isOpen, setIsOpen] = useState(false)
     const [currentUserId, setCurrentUserId] = useState("")
 
     useEffect(() => {
         const storedId = localStorage.getItem('userId') || '0282ddf2-e676-492d-a89c-89fd57ace2a9'
         setCurrentUserId(storedId)
-        
-        api.get('/users').then(res => {
-            const fetchedUsers = res.data.data
-            setUsers(fetchedUsers)
-            
-            // If currentId is not in the list (stale), switch to the first user (usually L4)
-            if (fetchedUsers.length > 0 && !fetchedUsers.find((u: any) => u.id === storedId)) {
-                console.log("Stale userId detected, resetting to default L4")
-                const l4User = fetchedUsers.find((u: any) => u.roleName === 'L4')
-                if (l4User) {
-                    localStorage.setItem('userId', l4User.id)
-                    setCurrentUserId(l4User.id)
-                }
-            }
-        })
     }, [])
+
+    useEffect(() => {
+        if (usersData && usersData.length > 0) {
+            const storedId = localStorage.getItem('userId')
+            if (storedId && !usersData.find((u: any) => u.id === storedId)) {
+                // If currentId is not in the list (stale or filtered out), we don't necessarily reset, 
+                // but we show the current one if it's there. 
+                // For the switcher, we only show what the API returns (which is already filtered by hierarchy).
+            }
+        }
+    }, [usersData])
 
     const handleSwitch = (userId: string) => {
         localStorage.setItem('userId', userId)
+        setCurrentUserId(userId)
         window.location.reload()
     }
 
-    const currentUser = users.find(u => u.id === currentUserId)
+    const users = usersData || []
 
     return (
         <div className="fixed bottom-4 right-4 z-[9999]">
@@ -49,11 +46,15 @@ export function RoleSwitcher() {
 
             {isOpen && (
                 <Card className="absolute bottom-16 right-0 w-64 max-h-[400px] overflow-y-auto p-2 bg-background border border-border shadow-2xl">
-                    <div className="px-3 py-2 border-b border-border mb-2">
+                    <div className="px-3 py-2 border-b border-border mb-2 flex items-center justify-between">
                         <p className="text-xs font-bold text-muted-foreground uppercase">Switch Officer Role</p>
+                        {isLoading && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
                     </div>
                     <div className="space-y-1">
-                        {users.map((user) => (
+                        {users.length === 0 && !isLoading && (
+                            <p className="text-[10px] text-center p-4 text-muted-foreground italic">No reachable users in your hierarchy</p>
+                        )}
+                        {users.map((user: any) => (
                             <button
                                 key={user.id}
                                 onClick={() => handleSwitch(user.id)}

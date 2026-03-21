@@ -52,10 +52,9 @@ export class UserService {
             include: { role: true }
         });
 
-        if (!requester) return [];
-
         let whereClause = {};
-        if (requester.role.name !== 'L4' && requester.regionId) {
+        // If requester not found (stale ID) or is L4, show all users
+        if (requester && requester.role.name !== 'L4' && requester.regionId) {
             const descendantIds = await getDescendantRegionIds(requester.regionId);
             whereClause = { regionId: { in: descendantIds } };
         }

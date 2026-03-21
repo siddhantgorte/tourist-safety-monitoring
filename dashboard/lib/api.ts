@@ -8,6 +8,10 @@ const api = axios.create({
     },
 });
 
+if (typeof window !== 'undefined') {
+    console.log('📡 API Base URL:', api.defaults.baseURL);
+}
+
 // Add a request interceptor to attach the token if it exists
 api.interceptors.request.use(
     (config) => {
