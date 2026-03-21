@@ -4,10 +4,16 @@ import { IncidentService } from './incident.service';
 const router = Router();
 const incidentService = new IncidentService();
 
+// Helper to get userId from header or fallback
+const getUserId = (req: Request) => {
+    return (req.headers['x-user-id'] as string) || (req.query.userId as string) || '0282ddf2-e676-492d-a89c-89fd57ace2a9';
+};
+
 // GET /api/incidents
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const data = await incidentService.getAllIncidents();
+        const userId = getUserId(req);
+        const data = await incidentService.getAllIncidents(userId);
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch incidents' });

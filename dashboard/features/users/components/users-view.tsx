@@ -32,8 +32,8 @@ export function UsersView() {
   const users = userData || [];
   const teamStats = {
     total: users.length,
-    online: users.filter((u: any) => u.status === 'Online').length,
-    onDuty: users.filter((u: any) => u.duty === 'On Duty').length
+    online: users.filter((u: UserType) => u.isOnline).length,
+    onDuty: users.filter((u: UserType) => u.isOnDuty).length
   };
 
   const getRoleColor = (role: string) => {
@@ -53,13 +53,12 @@ export function UsersView() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = {
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      role: formData.get('role') as string,
-      zone: formData.get('zone') as string,
+      fullName: formData.get('name') as string,
+      username: (formData.get('name') as string).toLowerCase().replace(/\s/g, '_'),
+      roleId: formData.get('roleId') as string,
+      regionId: formData.get('regionId') as string,
     };
-    await createUser.mutateAsync(data);
+    await createUser.mutateAsync(data as any);
     setIsAddModalOpen(false);
   }
 
@@ -116,24 +115,16 @@ export function UsersView() {
             <form onSubmit={handleAddUser} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" placeholder="e.g. Officer Smith" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" name="email" type="email" placeholder="officer@police.gov" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" placeholder="+1..." required />
+                <Input id="name" name="name" placeholder="e.g. Rahul Patil" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role (L1-L4)</Label>
-                  <Input id="role" name="role" placeholder="L2" required />
+                  <Label htmlFor="roleId">Role ID</Label>
+                  <Input id="roleId" name="roleId" placeholder="L1, L2, L3, L4" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zone">Assigned Zone</Label>
-                  <Input id="zone" name="zone" placeholder="Central" required />
+                  <Label htmlFor="regionId">Region ID</Label>
+                  <Input id="regionId" name="regionId" placeholder="ID of the region" required />
                 </div>
               </div>
               <DialogFooter>
@@ -162,16 +153,16 @@ export function UsersView() {
                       <User className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">{user.name}</h3>
-                      <p className="text-xs text-muted-foreground">{user.zone}</p>
+                      <h3 className="font-semibold text-foreground">{user.fullName || user.username}</h3>
+                      <p className="text-xs text-muted-foreground">{user.regionName || 'Global'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
-                        Role {user.role}
+                      <Badge variant="outline" className={`text-xs ${getRoleColor(user.roleName)}`}>
+                        Role {user.roleName}
                       </Badge>
-                      {user.duty === 'On Duty' && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>}
+                      {user.isOnDuty && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>}
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" onClick={(e) => openEdit(user, e)} className="h-8 w-8 text-muted-foreground hover:text-primary">
@@ -186,19 +177,9 @@ export function UsersView() {
 
                 {selectedUser === user.id && (
                   <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-accent" />
-                        <span className="text-sm text-muted-foreground">{user.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-accent" />
-                        <span className="text-sm text-muted-foreground">{user.phone}</span>
-                      </div>
-                    </div>
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-accent" />
-                      <span className="text-sm text-foreground">Status: <span className={user.status === 'Online' ? 'text-green-400' : 'text-muted-foreground'}>{user.status}</span> ({user.duty})</span>
+                      <span className="text-sm text-foreground">Status: <span className={user.isOnline ? 'text-green-400' : 'text-muted-foreground'}>{user.isOnline ? 'Online' : 'Offline'}</span> ({user.isOnDuty ? 'On Duty' : 'Off Duty'})</span>
                     </div>
                   </div>
                 )}
@@ -240,24 +221,16 @@ export function UsersView() {
           <form onSubmit={handleEditUser} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Full Name</Label>
-              <Input id="edit-name" name="name" defaultValue={editingUser?.name} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email Address</Label>
-              <Input id="edit-email" name="email" type="email" defaultValue={editingUser?.email} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone Number</Label>
-              <Input id="edit-phone" name="phone" defaultValue={editingUser?.phone} required />
+              <Input id="edit-name" name="name" defaultValue={editingUser?.fullName || ''} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-role">Role</Label>
-                <Input id="edit-role" name="role" defaultValue={editingUser?.role} required />
+                <Label htmlFor="edit-role">Role Name</Label>
+                <Input id="edit-role" name="role" defaultValue={editingUser?.roleName} readOnly />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-zone">Zone</Label>
-                <Input id="edit-zone" name="zone" defaultValue={editingUser?.zone} required />
+                <Label htmlFor="edit-region">Region</Label>
+                <Input id="edit-region" name="region" defaultValue={editingUser?.regionName || ''} readOnly />
               </div>
             </div>
             <DialogFooter>

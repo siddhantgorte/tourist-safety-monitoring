@@ -4,6 +4,7 @@ import { useRecentIncidentsOverview } from "../hooks/use-overview"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronRight, Loader2, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export function RecentIncidents() {
   const { data: incidents, isLoading, error } = useRecentIncidentsOverview();
@@ -49,12 +50,12 @@ export function RecentIncidents() {
       </Card>
     );
   }
-
+const router=useRouter()
   return (
     <Card className="bg-card border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-foreground">Recent Incidents</h2>
-        <button className="text-accent text-sm font-medium hover:underline">View All</button>
+        <button onClick={()=>{router.push("/incidents") }} className="text-accent text-sm font-medium hover:underline">View All</button>
       </div>
 
       <div className="space-y-3">

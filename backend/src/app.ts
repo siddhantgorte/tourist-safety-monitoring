@@ -1,9 +1,11 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { prisma } from './shared/db/client';
 
 const app = express();
 const httpServer = createServer(app);
@@ -45,13 +47,23 @@ import { SocketService } from './shared/utils/socket.service';
 const socketService = SocketService.getInstance();
 socketService.initialize(io);
 
-// Mock DB Availability Check (since we don't have real DB yet)
-console.warn("⚠️  Database URL not configured. Running in Mock/Dev mode.");
-
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Database Connection & Server Start
+async function startServer() {
+    try {
+        await prisma.$connect();
+        console.log('✅ Connected to Database successfully');
+        
+        httpServer.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to connect to Database:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 export { app, io };

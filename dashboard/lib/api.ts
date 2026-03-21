@@ -16,6 +16,13 @@ api.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+        
+        // Handle regional RBAC for demonstration
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : '0282ddf2-e676-492d-a89c-89fd57ace2a9';
+        if (userId) {
+            config.headers['x-user-id'] = userId;
+        }
+        
         return config;
     },
     (error) => {

@@ -4,12 +4,16 @@ import { DashboardService } from './dashboard.service';
 const router = Router();
 const dashboardService = new DashboardService();
 
+// Helper to get userId from header or fallback
+const getUserId = (req: Request) => {
+    return (req.headers['x-user-id'] as string) || '0282ddf2-e676-492d-a89c-89fd57ace2a9';
+};
+
 // GET /api/dashboard/overview
 router.get('/overview', async (req: Request, res: Response) => {
     try {
-        // In a real app, we extract role from req.user
-        const role = 'L2';
-        const stats = await dashboardService.getOverviewStats(role);
+        const userId = getUserId(req);
+        const stats = await dashboardService.getOverviewStats(userId);
         res.json({
             success: true,
             timestamp: new Date(),
@@ -23,7 +27,8 @@ router.get('/overview', async (req: Request, res: Response) => {
 // GET /api/dashboard/incidents
 router.get('/incidents', async (req: Request, res: Response) => {
     try {
-        const data = await dashboardService.getRecentIncidents();
+        const userId = getUserId(req);
+        const data = await dashboardService.getRecentIncidents(userId);
         res.json({
             success: true,
             timestamp: new Date(),
@@ -37,7 +42,8 @@ router.get('/incidents', async (req: Request, res: Response) => {
 // GET /api/dashboard/zones
 router.get('/zones', async (req: Request, res: Response) => {
     try {
-        const data = await dashboardService.getZoneStatus();
+        const userId = getUserId(req);
+        const data = await dashboardService.getZoneStatus(userId);
         res.json({
             success: true,
             timestamp: new Date(),

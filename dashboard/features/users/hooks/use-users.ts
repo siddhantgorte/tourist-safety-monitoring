@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface User {
     id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: string;
-    zone: string;
-    status: 'Online' | 'Offline';
-    duty: 'On Duty' | 'Off Duty';
+    username: string;
+    fullName: string | null;
+    roleId: string;
+    regionId: string | null;
+    roleName: string;
+    regionName: string | null;
+    isOnline: boolean;
+    isOnDuty: boolean;
 }
 
 export const usersService = {

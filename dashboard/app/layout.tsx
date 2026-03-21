@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   generator: 'v0.app'
 }
 
+import { RoleSwitcher } from "@/components/layout/RoleSwitcher"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,6 +26,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <Providers>
           {children}
+          <RoleSwitcher />
           <Analytics />
         </Providers>
       </body>

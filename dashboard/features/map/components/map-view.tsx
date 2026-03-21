@@ -7,11 +7,28 @@ import { useGeofences, useUpdateGeofence } from "@/features/geofences/hooks/use-
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import dynamic from "next/dynamic"
+import { useState } from "react"
+
+const MapComponent = dynamic(() => import("./MapComponent"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center w-full h-full min-h-[500px] bg-secondary/10">
+      <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+    </div>
+  )
+})
 
 export function MapView() {
   const { data: stats, isLoading: statsLoading } = useOverviewStats();
   const { data: geofences, isLoading: gfLoading } = useGeofences();
   const updateGf = useUpdateGeofence();
+
+  const [layers, setLayers] = useState({
+    tourists: true,
+    officers: true,
+    incidents: true
+  });
 
   const handleToggle = async (id: string, active: boolean) => {
     await updateGf.mutateAsync({ id, active });
@@ -65,27 +82,36 @@ export function MapView() {
               Layer Filters
             </h3>
             <div className="space-y-3">
-              <label className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
+              <div className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Users className="w-4 h-4 text-primary" />
                   <span className="text-sm">Tourists</span>
                 </div>
-                <Badge variant="secondary">{stats?.touristsMonitored?.count ?? 0}</Badge>
-              </label>
-              <label className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{stats?.touristsMonitored?.count ?? 0}</Badge>
+                  <Switch checked={layers.tourists} onCheckedChange={(val) => setLayers((prev: any) => ({ ...prev, tourists: val }))} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Shield className="w-4 h-4 text-accent" />
                   <span className="text-sm">Officers</span>
                 </div>
-                <Badge variant="secondary">{stats?.officersOnline?.count ?? 0}</Badge>
-              </label>
-              <label className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{stats?.officersOnline?.count ?? 0}</Badge>
+                  <Switch checked={layers.officers} onCheckedChange={(val) => setLayers((prev: any) => ({ ...prev, officers: val }))} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded hover:bg-secondary/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-4 h-4 text-destructive" />
                   <span className="text-sm">Incidents</span>
                 </div>
-                <Badge variant="destructive">Live</Badge>
-              </label>
+                <div className="flex items-center gap-2">
+                  <Badge variant="destructive">Live</Badge>
+                  <Switch checked={layers.incidents} onCheckedChange={(val) => setLayers((prev: any) => ({ ...prev, incidents: val }))} />
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -117,46 +143,25 @@ export function MapView() {
           </Card>
         </div>
 
-        {/* Map Placeholder */}
-        <Card className="lg:col-span-3 bg-secondary/20 border-border relative overflow-hidden flex items-center justify-center min-h-[500px]">
-          {/* Background elements to simulate a map */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)',
-              backgroundSize: '40px 40px'
-            }}
+        {/* Real Leaflet Map */}
+        <div className="lg:col-span-3 min-h-[600px] relative rounded-xl overflow-hidden border border-border">
+          <MapComponent 
+            regionGeometry={stats?.regionGeometry}
+            liveTourists={stats?.liveTourists}
+            layers={layers}
           />
-
-          <div className="text-center z-10 p-8">
-            <div className="relative mb-6">
-              <MapPin className="w-16 h-16 text-primary mx-auto animate-bounce" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/10 rounded-full animate-ping" />
+          
+          {/* Overlay Status */}
+          <div className="absolute bottom-4 left-4 z-[1000] p-3 bg-background/80 backdrop-blur rounded-lg border border-border shadow-lg">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="font-semibold text-[10px] uppercase">SOC CONNECTED - {stats?.regionName || 'GLOBAL'}</span>
             </div>
-            <h3 className="text-2xl font-bold mb-2">Mission Control Map</h3>
-            <p className="text-muted-foreground max-w-md mx-auto mb-8">
-              Geospatial engine ready. Displaying {geofences?.length ?? 0} active fences and {stats?.touristsMonitored?.count ?? 0} tourist nodes.
+            <p className="text-[10px] text-muted-foreground italic">
+              Lat: 15.4989° N, Lng: 73.8278° E • Accuracy: 3m
             </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {geofences?.filter((g: any) => g.active).map((g: any) => (
-                <div key={g.id} className="p-2 rounded border border-primary/20 bg-primary/5 text-[10px] flex items-center gap-2">
-                  <Shield className="w-3 h-3 text-primary" />
-                  <span className="truncate">{g.name}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 p-4 bg-background/80 backdrop-blur rounded-xl border border-border inline-block text-left text-sm max-w-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-semibold text-xs">SOC CONNECTED - GOA REGION</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground italic">
-                Lat: 15.4989° N, Lng: 73.8278° E • Elevation: 14m • Accuracy: 3m
-              </p>
-            </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   )

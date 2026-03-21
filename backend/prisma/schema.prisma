@@ -3,205 +3,205 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// 1. Users & Auth
-model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String // Hashed
-  fullName  String?
-  roleId    String
-  role      Role     @relation(fields: [roleId], references: [id])
-  isOnDuty  Boolean  @default(false)
-  isOnline  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Region {
+  id        String     @id @default(uuid())
+  name      String
+  type      RegionType
+  parentId  String?
+  createdAt DateTime   @default(now())
+  geometry  Json?
+  incidents Incident[]
+  parent    Region?    @relation("RegionHierarchy", fields: [parentId], references: [id])
+  children  Region[]   @relation("RegionHierarchy")
+  users     User[]
+  zones     Zone[]
+}
 
-  assignedZones     UserZone[]
-  assignedIncidents IncidentAssignment[]
-  actions           IncidentAction[]
+model User {
+  id                String               @id @default(uuid())
+  username          String               @unique
+  password          String
+  fullName          String?
+  roleId            String
+  regionId          String?
+  isOnDuty          Boolean              @default(false)
+  isOnline          Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   auditLogs         AuditLog[]
+  actions           IncidentAction[]
+  assignedIncidents IncidentAssignment[]
+  region            Region?              @relation(fields: [regionId], references: [id])
+  role              Role                 @relation(fields: [roleId], references: [id])
 }
 
 model Role {
   id          String       @id @default(uuid())
-  name        String       @unique // L1, L2, L3, L4, ADMIN
+  name        String       @unique
   permissions Permission[]
   users       User[]
 }
 
 model Permission {
   id     String @id @default(uuid())
-  name   String @unique // e.g. "view_incidents"
+  name   String @unique
   roleId String
   role   Role   @relation(fields: [roleId], references: [id])
 }
 
-// 2. Tourists & Identity
 model Tourist {
-  id          String   @id @default(uuid())
-  phoneNumber String   @unique // Identity anchor
-  fullName    String?
-  nationality String?
-  createdAt   DateTime @default(now())
-
-  trips         Trip[]
-  incidents     Incident[]
+  id            String         @id @default(uuid())
+  phoneNumber   String         @unique
+  fullName      String?
+  nationality   String?
+  createdAt     DateTime       @default(now())
   devices       Device[]
+  incidents     Incident[]
   notifications Notification[]
+  trips         Trip[]
 }
 
 model Trip {
-  id        String    @id @default(uuid())
-  touristId String
-  tourist   Tourist   @relation(fields: [touristId], references: [id])
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  isActive  Boolean   @default(true)
-
+  id              String            @id @default(uuid())
+  touristId       String
+  startDate       DateTime          @default(now())
+  endDate         DateTime?
+  isActive        Boolean           @default(true)
+  currentLat      Float?
+  currentLng      Float?
+  lastUpdate      DateTime?         @default(now())
+  aiAlerts        AIAlert[]
+  deviceTelemetry DeviceTelemetry[]
   digitalId       DigitalID?
-  locations       LocationUpdate[]
   geoEvents       GeoEvent[]
   incidents       Incident[]
-  aiAlerts        AIAlert[]
+  locations       LocationUpdate[]
   safetyScores    SafetyScore[]
-  deviceTelemetry DeviceTelemetry[]
+  tourist         Tourist           @relation(fields: [touristId], references: [id])
 }
 
 model DigitalID {
-  id             String    @id @default(uuid())
-  tripId         String    @unique
-  trip           Trip      @relation(fields: [tripId], references: [id])
-  qrCodeData     String // Encrypted or signed payload
-  generatedAt    DateTime  @default(now())
+  id             String         @id @default(uuid())
+  tripId         String         @unique
+  qrCodeData     String
+  generatedAt    DateTime       @default(now())
   expiresAt      DateTime
-  blockchainHash String? // Anchor to blockchain
+  blockchainHash String?
+  trip           Trip           @relation(fields: [tripId], references: [id])
   verifications  Verification[]
 }
 
 model Verification {
-  id          String    @id @default(uuid())
-  digitalId   String
-  digital     DigitalID @relation(fields: [digitalId], references: [id])
-  verifierId  String? // Officer ID or Scanner ID
-  verifiedAt  DateTime  @default(now())
-  location    String? // GPS or description
+  id           String    @id @default(uuid())
+  digitalId    String
+  verifierId   String?
+  verifiedAt   DateTime  @default(now())
+  location     String?
   isSuccessful Boolean
+  digital      DigitalID @relation(fields: [digitalId], references: [id])
 }
 
-// 3. Location & Zones
 model Zone {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
-  riskLevel   String   @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  riskLevel   String     @default("LOW")
   description String?
-  createdAt   DateTime @default(now())
-
-  geoFences UserZone[]
-  fences    GeoFence[]
-  incidents Incident[]
-}
-
-model UserZone {
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-  zoneId String
-  zone   Zone   @relation(fields: [zoneId], references: [id])
-
-  @@id([userId, zoneId])
+  regionId    String?
+  createdAt   DateTime   @default(now())
+  fences      GeoFence[]
+  incidents   Incident[]
+  region      Region?    @relation(fields: [regionId], references: [id])
 }
 
 model GeoFence {
   id          String     @id @default(uuid())
   zoneId      String
-  zone        Zone       @relation(fields: [zoneId], references: [id])
   name        String
-  coordinates Json // Polygon points
-  type        String // SAFE, DANGER, RESTRICTED
+  coordinates Json
+  type        String
   events      GeoEvent[]
+  zone        Zone       @relation(fields: [zoneId], references: [id])
 }
 
 model GeoEvent {
   id         String   @id @default(uuid())
   tripId     String
-  trip       Trip     @relation(fields: [tripId], references: [id])
   geoFenceId String
-  geoFence   GeoFence @relation(fields: [geoFenceId], references: [id])
-  eventType  String // ENTRY, EXIT
+  eventType  String
   timestamp  DateTime @default(now())
+  geoFence   GeoFence @relation(fields: [geoFenceId], references: [id])
+  trip       Trip     @relation(fields: [tripId], references: [id])
 }
 
-// 4. Incidents
 model Incident {
-  id          String   @id @default(uuid())
-  type        String // PANIC, LOST, THEFT, HARASSMENT, AI_ANOMALY
-  severity    String // INFO, WARNING, CRITICAL
-  status      String   @default("OPEN") // OPEN, ASSIGNED, RESPONDING, RESOLVED, FALSE_ALARM
-  description String?
-  zoneId      String?
-  zone        Zone?    @relation(fields: [zoneId], references: [id])
-  tripId      String? // Optional (if linked to a tourist)
-  trip        Trip?    @relation(fields: [tripId], references: [id])
-  touristId   String? // Direct link backup
-  tourist     Tourist? @relation(fields: [touristId], references: [id])
-
-  latitude  Float?
-  longitude Float?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignments   IncidentAssignment[]
-  actions       IncidentAction[]
+  id            String               @id @default(uuid())
+  type          String
+  severity      String
+  status        String               @default("OPEN")
+  description   String?
+  regionId      String?
+  zoneId        String?
+  tripId        String?
+  touristId     String?
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  aiAlertId     String?              @unique
   evidence      Evidence[]
   aiAlertLink   AIAlert?             @relation(fields: [aiAlertId], references: [id])
-  aiAlertId     String?              @unique
+  region        Region?              @relation(fields: [regionId], references: [id])
+  tourist       Tourist?             @relation(fields: [touristId], references: [id])
+  trip          Trip?                @relation(fields: [tripId], references: [id])
+  zone          Zone?                @relation(fields: [zoneId], references: [id])
+  actions       IncidentAction[]
+  assignments   IncidentAssignment[]
   notifications Notification[]
 }
 
 model IncidentAssignment {
   id         String   @id @default(uuid())
   incidentId String
-  incident   Incident @relation(fields: [incidentId], references: [id])
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
   assignedAt DateTime @default(now())
-  status     String   @default("ACTIVE") // ACTIVE, COMPLETED
+  status     String   @default("ACTIVE")
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model IncidentAction {
   id         String   @id @default(uuid())
   incidentId String
-  incident   Incident @relation(fields: [incidentId], references: [id])
-  userId     String? // Nullable if system action
-  user       User?    @relation(fields: [userId], references: [id])
-  actionType String // STATUS_CHANGE, NOTE, OFFICER_ASSIGN, ESCALATE
+  userId     String?
+  actionType String
   details    String?
   timestamp  DateTime @default(now())
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
 }
 
 model Evidence {
   id         String   @id @default(uuid())
   incidentId String
-  incident   Incident @relation(fields: [incidentId], references: [id])
   fileUrl    String
-  fileType   String // IMAGE, AUDIO, VIDEO
+  fileType   String
   uploadedAt DateTime @default(now())
-  hash       String? // Blockchain anchor
+  hash       String?
+  incident   Incident @relation(fields: [incidentId], references: [id])
 }
 
-// 5. Tracking & IO
 model LocationUpdate {
   id        String   @id @default(uuid())
   tripId    String
-  trip      Trip     @relation(fields: [tripId], references: [id])
   latitude  Float
   longitude Float
   accuracy  Float?
   timestamp DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id])
 
   @@index([tripId, timestamp])
 }
@@ -209,62 +209,67 @@ model LocationUpdate {
 model Device {
   id        String            @id @default(uuid())
   touristId String
+  type      String
   tourist   Tourist           @relation(fields: [touristId], references: [id])
-  type      String // BAND, APP_INSTANCE
   telemetry DeviceTelemetry[]
 }
 
 model DeviceTelemetry {
   id        String   @id @default(uuid())
   deviceId  String
-  device    Device   @relation(fields: [deviceId], references: [id])
-  tripId    String? // Link to specific trip
-  trip      Trip?    @relation(fields: [tripId], references: [id])
+  tripId    String?
   battery   Int?
   signal    Int?
   timestamp DateTime @default(now())
+  device    Device   @relation(fields: [deviceId], references: [id])
+  trip      Trip?    @relation(fields: [tripId], references: [id])
 }
 
-// 6. AI & Monitoring
 model AIAlert {
   id         String    @id @default(uuid())
   tripId     String
-  trip       Trip      @relation(fields: [tripId], references: [id])
-  type       String // INACTIVITY, DEVIATION, SIGNAL_LOSS
+  type       String
   confidence Float
   createdAt  DateTime  @default(now())
+  trip       Trip      @relation(fields: [tripId], references: [id])
   incident   Incident?
 }
 
 model SafetyScore {
   id        String   @id @default(uuid())
   tripId    String
-  trip      Trip     @relation(fields: [tripId], references: [id])
-  score     Float // 0-100
-  factors   Json? // Why the score changed
+  score     Float
+  factors   Json?
   timestamp DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id])
 }
 
-// 7. System
 model Notification {
-  id        String    @id @default(uuid())
-  message   String
-  type      String // PUSH, SMS
-  userId    String? // For officers
-  touristId String? // For tourists
-  tourist   Tourist?  @relation(fields: [touristId], references: [id])
+  id         String    @id @default(uuid())
+  message    String
+  type       String
+  userId     String?
+  touristId  String?
   incidentId String?
-  incident  Incident? @relation(fields: [incidentId], references: [id])
-  sentAt    DateTime  @default(now())
-  isRead    Boolean   @default(false)
+  sentAt     DateTime  @default(now())
+  isRead     Boolean   @default(false)
+  incident   Incident? @relation(fields: [incidentId], references: [id])
+  tourist    Tourist?  @relation(fields: [touristId], references: [id])
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   action    String
   resource  String
   details   Json?
   timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum RegionType {
+  COUNTRY
+  STATE
+  DIVISION
+  DISTRICT
 }
