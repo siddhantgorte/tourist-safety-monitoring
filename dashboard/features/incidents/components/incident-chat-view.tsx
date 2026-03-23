@@ -78,7 +78,7 @@ export function IncidentChatView({ id }: IncidentChatViewProps) {
     };
 
     if (isIncidentLoading || isMessagesLoading) {
-        return <div className="flex justify-center items-center h-screens p-12">Loading chat...</div>;
+        return <div className="flex justify-center items-center h-screen p-12 text-sm text-muted-foreground">Loading chat...</div>;
     }
 
     if (!incident) {

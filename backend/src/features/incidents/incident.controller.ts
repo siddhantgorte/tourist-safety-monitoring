@@ -20,6 +20,16 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/incidents/tourist/:id
+router.get('/tourist/:id', async (req: Request, res: Response) => {
+    try {
+        const data = await incidentService.getIncidentsByTourist(req.params.id as string);
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch tourist incidents' });
+    }
+});
+
 // GET /api/incidents/:id
 router.get('/:id', async (req: Request, res: Response) => {
     try {

@@ -1,46 +1,56 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { Activity, MapPin, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Activity, MapPin, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { useZoneStatus } from "../hooks/use-overview"
 
 export function StatusOverview() {
-  const statuses = [
-    {
-      label: "All Clear",
-      value: 8,
-      icon: CheckCircle2,
-      color: "text-green-400",
-      bgColor: "bg-green-500/10",
-    },
-    {
-      label: "Under Watch",
-      value: 5,
-      icon: Activity,
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-    },
-    {
-      label: "Active Alert",
-      value: 2,
-      icon: AlertCircle,
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
-    },
-    {
-      label: "Critical",
-      value: 1,
-      icon: MapPin,
-      color: "text-red-400",
-      bgColor: "bg-red-500/10",
-    },
-  ]
+  const { data: zoneData, isLoading } = useZoneStatus();
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card border-border p-6 flex items-center justify-center min-h-[300px]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </Card>
+    );
+  }
+
+  const iconMap: Record<string, any> = {
+    "All Clear": CheckCircle2,
+    "Under Watch": Activity,
+    "Active Alert": AlertCircle,
+    "Critical": MapPin,
+  };
+
+  const colorMap: Record<string, string> = {
+    "All Clear": "text-green-400",
+    "Under Watch": "text-blue-400",
+    "Active Alert": "text-yellow-400",
+    "Critical": "text-red-400",
+  };
+
+  const bgMap: Record<string, string> = {
+    "All Clear": "bg-green-500/10",
+    "Under Watch": "bg-blue-500/10",
+    "Active Alert": "bg-yellow-500/10",
+    "Critical": "bg-red-500/10",
+  };
+
+  const statuses = (zoneData || []).map((item: any) => ({
+    label: item.label,
+    value: item.value,
+    icon: iconMap[item.label] || AlertCircle,
+    color: colorMap[item.label] || "text-slate-400",
+    bgColor: bgMap[item.label] || "bg-slate-500/10",
+  }));
+
 
   return (
     <Card className="bg-card border-border p-6">
       <h2 className="text-xl font-bold text-foreground mb-4">Zone Status</h2>
 
       <div className="space-y-3">
-        {statuses.map((status, idx) => {
+        {statuses.map((status: any, idx: number) => {
           const Icon = status.icon
           return (
             <div key={idx} className="p-3 rounded-lg bg-secondary/50 border border-border/50">

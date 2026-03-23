@@ -7,6 +7,7 @@ import { Send, Camera, Image as ImageIcon, AlertCircle, X, CheckCircle, ChevronL
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import { DEFAULT_TOURIST } from '../constants/User';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
@@ -62,7 +63,7 @@ export default function IncidentReportScreen() {
 
             // Connect to Socket
             socketRef.current = io(BACKEND_URL, {
-                auth: { userId: 'tourist-demo-001', role: 'tourist' }
+                auth: { userId: DEFAULT_TOURIST.id, role: 'tourist' }
             });
 
             socketRef.current.on('connect', () => {
@@ -111,7 +112,7 @@ export default function IncidentReportScreen() {
                 description,
                 latitude: locationData.latitude,
                 longitude: locationData.longitude,
-                touristId: 'tourist-demo-001', // Mock or Dynamic ID
+                touristId: DEFAULT_TOURIST.id,
                 status: 'OPEN'
             });
 

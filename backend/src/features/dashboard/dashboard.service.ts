@@ -123,17 +123,42 @@ export class DashboardService {
 
     if (!user.regionId) return [];
 
-    // For simplicity, return children regions as zones for the dashboard view
     const children = await prisma.region.findMany({
       where: { parentId: user.regionId },
-      include: { _count: { select: { incidents: { where: { status: 'OPEN' } } } } }
+      include: { 
+        incidents: { 
+          where: { status: 'OPEN' },
+          select: { severity: true }
+        } 
+      }
     });
 
-    return children.map((child: any) => ({
-      id: child.id,
-      name: child.name,
-      status: child._count.incidents > 0 ? 'Active Alert' : 'All Clear',
-      incidentCount: child._count.incidents
-    }));
+    const summary = {
+      allClear: 0,
+      underWatch: 0,
+      activeAlert: 0,
+      critical: 0
+    };
+
+    children.forEach((child: any) => {
+      const openIncidents = child.incidents;
+      if (openIncidents.length === 0) {
+        summary.allClear++;
+      } else {
+        const hasCritical = openIncidents.some((inc: any) => inc.severity === 'CRITICAL');
+        const hasWarning = openIncidents.some((inc: any) => inc.severity === 'WARNING' || inc.severity === 'ALERT');
+        
+        if (hasCritical) summary.critical++;
+        else if (hasWarning) summary.activeAlert++;
+        else summary.underWatch++;
+      }
+    });
+
+    return [
+      { label: "All Clear", value: summary.allClear, status: 'stable' },
+      { label: "Under Watch", value: summary.underWatch, status: 'warning' },
+      { label: "Active Alert", value: summary.activeAlert, status: 'danger' },
+      { label: "Critical", value: summary.critical, status: 'critical' },
+    ];
   }
 }

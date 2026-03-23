@@ -8,6 +8,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash('password123', 10)
 
   // 0. Cleanup
+  await prisma.incidentMessage.deleteMany()
   await prisma.incidentAssignment.deleteMany()
   await prisma.incidentAction.deleteMany()
   await prisma.incident.deleteMany()
@@ -160,27 +161,15 @@ async function main() {
     })
 
     for (const distName of div.districts) {
-      let geometry = getDistrictGeometry(distName)
-      
-      // Fallback for Palghar (missing in GeoJSON) - use Thane's geometry if available
-      if (!geometry && distName === 'Palghar') {
-        geometry = getDistrictGeometry('Thane')
-      }
-
-      // Final fallback if still null (should not happen for others)
-      if (!geometry) {
-        geometry = {
-          type: 'Polygon',
-          coordinates: [[[div.lng - 0.1, div.lat - 0.1], [div.lng + 0.1, div.lat - 0.1], [div.lng + 0.1, div.lat + 0.1], [div.lng - 0.1, div.lat + 0.1], [div.lng - 0.1, div.lat - 0.1]]]
-        }
-      }
-
       const district = await prisma.region.create({
         data: { 
           name: distName, 
           type: 'DISTRICT', 
           parentId: division.id,
-          geometry
+          geometry: getDistrictGeometry(distName) || {
+            type: 'Polygon',
+            coordinates: [[[div.lng - 0.1, div.lat - 0.1], [div.lng + 0.1, div.lat - 0.1], [div.lng + 0.1, div.lat + 0.1], [div.lng - 0.1, div.lat + 0.1], [div.lng - 0.1, div.lat - 0.1]]]
+          }
         }
       })
 
@@ -204,6 +193,18 @@ async function main() {
       await createLiveData(district.id, div.lat, div.lng)
     }
   }
+
+  // 4. Create persistent Demo Tourist
+  await prisma.tourist.upsert({
+    where: { id: 'tourist-demo-001' },
+    update: {},
+    create: {
+      id: 'tourist-demo-001',
+      fullName: 'Johnathan Tourist',
+      phoneNumber: '+919988776655',
+      nationality: 'Indian'
+    }
+  });
 
   console.log('Seeding completed successfully!')
 }

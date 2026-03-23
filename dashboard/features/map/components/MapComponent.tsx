@@ -1,15 +1,11 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
-// Fix for default marker icon issues in Next.js/Webpack
-const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png"
-const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
-const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
-
+// Icons
 const touristIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/854/854866.png', // Person icon
   iconSize: [32, 32],
@@ -31,6 +27,7 @@ interface MapComponentProps {
   liveTourists?: any[]
   incidents?: any[]
   focusedTouristId?: string | null
+  focusCoords?: { lat: number, lng: number, label: string } | null
   layers?: {
     tourists: boolean
     officers: boolean
@@ -38,6 +35,7 @@ interface MapComponentProps {
   }
 }
 
+// Sub-components
 function FocusHandler({ liveTourists, focusedTouristId }: { liveTourists: any[], focusedTouristId: string | null }) {
   const map = useMap();
 
@@ -53,13 +51,23 @@ function FocusHandler({ liveTourists, focusedTouristId }: { liveTourists: any[],
   return null;
 }
 
-// Helper component to handle window resize and map invalidation
+function CoordinateFocusHandler({ focusCoords }: { focusCoords: { lat: number, lng: number } | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (focusCoords) {
+      map.setView([focusCoords.lat, focusCoords.lng], 16, { animate: true });
+    }
+  }, [focusCoords, map]);
+
+  return null;
+}
+
 function ResizeHandler({ regionGeometry }: { regionGeometry?: any }) {
   const map = useMap()
   
   useEffect(() => {
-    // Aggressive invalidation strategy to handle dynamic loading
-    const invalidationTimes = [100, 500, 1000, 2000]
+    const invalidationTimes = [100, 500, 1000]
     const timers = invalidationTimes.map(ms => 
       setTimeout(() => {
         map.invalidateSize()
@@ -75,13 +83,8 @@ function ResizeHandler({ regionGeometry }: { regionGeometry?: any }) {
       }
     }
 
-    // Handle window resize events
-    const handleResize = () => {
-      map.invalidateSize()
-    }
-
+    const handleResize = () => { map.invalidateSize() }
     window.addEventListener("resize", handleResize)
-    
     return () => {
       timers.forEach(clearTimeout)
       window.removeEventListener("resize", handleResize)
@@ -91,20 +94,79 @@ function ResizeHandler({ regionGeometry }: { regionGeometry?: any }) {
   return null
 }
 
+function TouristMarker({ t, isFocused }: { t: any, isFocused: boolean }) {
+  const markerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    if (isFocused && markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [isFocused]);
+
+  return (
+    <Marker 
+      position={[t.lat, t.lng]}
+      icon={touristIcon}
+      ref={markerRef}
+    >
+      <Popup>
+        <div className="p-1 min-w-[150px]">
+          <p className="font-bold text-base">{t.name}</p>
+          <p className="text-xs text-muted-foreground mb-2">Live Tracking Active</p>
+          <div className="flex items-center gap-2 mb-2">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+             <span className="text-[10px] font-medium uppercase">Connected</span>
+          </div>
+          <p className="text-[10px] italic border-t pt-2 mt-2">
+            Last seen: {new Date(t.lastUpdate).toLocaleTimeString()}
+          </p>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+function IncidentMarker({ inc }: { inc: any }) {
+  return (
+    <Marker 
+      position={[inc.latitude, inc.longitude]}
+      icon={incidentIcon}
+    >
+      <Popup>
+        <div className="p-1">
+          <p className="font-bold text-red-600">{inc.type}</p>
+          <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">{inc.severity} SEVERITY</p>
+          <p className="text-xs">{inc.description}</p>
+          <p className="text-[10px] mt-2 italic">Reported: {new Date(inc.createdAt).toLocaleTimeString()}</p>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
 export default function MapComponent({ 
-  center = [18.97, 72.82], // Default to Mumbai/Maharashtra region
-  zoom = 6,
+  center = [18.97, 72.82],
+  zoom = 12,
   regionGeometry,
   liveTourists = [],
   incidents = [],
   focusedTouristId = null,
+  focusCoords = null,
   layers = { tourists: true, officers: true, incidents: true }
 }: MapComponentProps) {
+  const targetMarkerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    if (focusCoords && targetMarkerRef.current) {
+        targetMarkerRef.current.openPopup();
+    }
+  }, [focusCoords]);
+
   return (
     <div className="w-full h-full min-h-[500px] rounded-xl overflow-hidden shadow-inner bg-secondary/10 relative">
       <MapContainer 
-        center={center} 
-        zoom={zoom} 
+        center={focusCoords ? [focusCoords.lat, focusCoords.lng] : center} 
+        zoom={focusCoords ? 16 : zoom} 
         scrollWheelZoom={true}
         style={{ height: "100%", width: "100%", position: "absolute", top: 0, left: 0 }}
         className="leaflet-container"
@@ -115,6 +177,7 @@ export default function MapComponent({
         />
         <ResizeHandler regionGeometry={regionGeometry} />
         <FocusHandler liveTourists={liveTourists} focusedTouristId={focusedTouristId} />
+        <CoordinateFocusHandler focusCoords={focusCoords} />
         
         {regionGeometry && (
           <GeoJSON 
@@ -129,37 +192,28 @@ export default function MapComponent({
         )}
 
         {layers.tourists && liveTourists.map((t) => (
-          <Marker 
-            key={t.id} 
-            position={[t.lat, t.lng]}
-            icon={touristIcon}
-          >
-            <Popup>
-              <div className="p-1">
-                <p className="font-bold">{t.name}</p>
-                <p className="text-xs text-muted-foreground">Live Tracking Active</p>
-                <p className="text-[10px] italic">Last update: {new Date(t.lastUpdate).toLocaleTimeString()}</p>
-              </div>
-            </Popup>
-          </Marker>
+          <TouristMarker key={t.id} t={t} isFocused={t.id === focusedTouristId} />
         ))}
 
         {layers.incidents && incidents.map((inc) => (
-          <Marker 
-            key={inc.id} 
-            position={[inc.latitude, inc.longitude]}
-            icon={incidentIcon}
-          >
-            <Popup>
-              <div className="p-1">
-                <p className="font-bold text-red-600">{inc.type}</p>
-                <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">{inc.severity} SEVERITY</p>
-                <p className="text-xs">{inc.description}</p>
-                <p className="text-[10px] mt-2 italic">Reported: {new Date(inc.createdAt).toLocaleTimeString()}</p>
-              </div>
-            </Popup>
-          </Marker>
+          <IncidentMarker key={inc.id} inc={inc} />
         ))}
+
+        {focusCoords && (
+            <Marker 
+                position={[focusCoords.lat, focusCoords.lng]} 
+                icon={touristIcon} 
+                ref={targetMarkerRef}
+            >
+                <Popup>
+                    <div className="p-1">
+                        <p className="font-bold text-red-600">Incident Location</p>
+                        <p className="text-sm">{focusCoords.label}</p>
+                        <p className="text-[10px] mt-2 text-muted-foreground uppercase font-bold tracking-widest">Pinpointed from Report</p>
+                    </div>
+                </Popup>
+            </Marker>
+        )}
       </MapContainer>
     </div>
   )

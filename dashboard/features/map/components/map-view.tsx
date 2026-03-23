@@ -30,6 +30,9 @@ export function MapView() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const touristIdParam = searchParams.get('touristId');
+  const latParam = searchParams.get('lat');
+  const lngParam = searchParams.get('lng');
+  const labelParam = searchParams.get('label');
 
   const { data: stats, isLoading: statsLoading } = useOverviewStats();
   const { data: incidentsData, isLoading: incLoading } = useIncidents();
@@ -224,6 +227,7 @@ export function MapView() {
             liveTourists={liveTourists}
             incidents={liveIncidents}
             focusedTouristId={touristIdParam}
+            focusCoords={latParam && lngParam ? { lat: parseFloat(latParam), lng: parseFloat(lngParam), label: labelParam || 'Focused Location' } : null}
             layers={layers}
           />
           

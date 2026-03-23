@@ -242,7 +242,7 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
                                         variant="outline" 
                                         size="sm" 
                                         className="h-7 text-[10px] gap-1"
-                                        onClick={() => incident.tourist && router.push(`/map?touristId=${incident.tourist.id}`)}
+                                        onClick={() => incident.tourist && router.push(`/map?touristId=${incident.tourist.id}&lat=${incident.latitude}&lng=${incident.longitude}&label=${encodeURIComponent(incident.tourist.fullName ?? '')}`)}
                                     >
                                         <MapPin size={12} />
                                         Show on Map

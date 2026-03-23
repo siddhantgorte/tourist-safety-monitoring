@@ -93,11 +93,23 @@ export class IncidentService {
         if (inputData.touristId) {
             const touristExists = await prisma.tourist.findUnique({ where: { id: inputData.touristId }});
             if (!touristExists) {
-                const anyTourist = await prisma.tourist.findFirst();
-                if (anyTourist) {
-                    inputData.touristId = anyTourist.id;
+                if (inputData.touristId === 'tourist-demo-001') {
+                    // Auto-create demo tourist if missing
+                    await prisma.tourist.create({
+                        data: {
+                            id: 'tourist-demo-001',
+                            fullName: 'Johnathan Tourist',
+                            phoneNumber: '+919988776655',
+                            nationality: 'Indian'
+                        }
+                    });
                 } else {
-                    delete inputData.touristId;
+                    const anyTourist = await prisma.tourist.findFirst();
+                    if (anyTourist) {
+                        inputData.touristId = anyTourist.id;
+                    } else {
+                        delete inputData.touristId;
+                    }
                 }
             }
         }
@@ -163,6 +175,19 @@ export class IncidentService {
         return await prisma.incidentMessage.findMany({
             where: { incidentId },
             orderBy: { timestamp: 'asc' }
+        });
+    }
+
+    async getIncidentsByTourist(touristId: string) {
+        return await prisma.incident.findMany({
+            where: { touristId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                messages: {
+                    orderBy: { timestamp: 'desc' },
+                    take: 1
+                }
+            }
         });
     }
 }

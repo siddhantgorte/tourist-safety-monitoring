@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Phone, Map, Languages, LogOut, ChevronRight, QrCode } from 'lucide-react-native';
+import { User as UserIcon, Phone, Map, Languages, LogOut, ChevronRight, QrCode } from 'lucide-react-native';
+import { DEFAULT_TOURIST } from '../../constants/User';
 
 export default function ProfileScreen() {
     return (
@@ -9,11 +10,15 @@ export default function ProfileScreen() {
                 <View className="p-6">
                     {/* Profile Card */}
                     <View className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-8 items-center">
-                        <View className="w-24 h-24 bg-slate-100 rounded-full items-center justify-center mb-4 border-2 border-slate-50">
-                            <User size={48} color="#94a3b8" />
+                        <View className="w-24 h-24 bg-slate-100 rounded-full items-center justify-center mb-4 border-2 border-slate-50 overflow-hidden">
+                            {DEFAULT_TOURIST.avatar ? (
+                                <Image source={{ uri: DEFAULT_TOURIST.avatar }} className="w-full h-full" />
+                            ) : (
+                                <UserIcon size={48} color="#94a3b8" />
+                            )}
                         </View>
-                        <Text className="text-xl font-bold text-slate-900">Johnathan Tourist</Text>
-                        <Text className="text-slate-500">ID Ref: T-9988-G2</Text>
+                        <Text className="text-xl font-bold text-slate-900">{DEFAULT_TOURIST.name}</Text>
+                        <Text className="text-slate-500">ID Ref: {DEFAULT_TOURIST.id}</Text>
 
                         <View className="mt-6 p-4 bg-slate-900 rounded-2xl w-full flex-row items-center justify-between">
                             <View>

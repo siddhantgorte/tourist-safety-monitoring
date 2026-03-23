@@ -6,6 +6,7 @@ import { Shield, Zap, Wind, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
 import { io } from 'socket.io-client';
+import { DEFAULT_TOURIST } from '../../constants/User';
 
 // Constants for Safety Monitoring
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
@@ -42,8 +43,8 @@ export default function SafetyScreen() {
         // Initialize Socket
         socketRef.current = io(BACKEND_URL, {
             auth: {
-                userId: 'tourist-demo-001',
-                name: 'Demo Tourist',
+                userId: DEFAULT_TOURIST.id,
+                name: DEFAULT_TOURIST.name,
                 role: 'tourist'
             }
         });
@@ -66,8 +67,8 @@ export default function SafetyScreen() {
 
                     // Emit to SOC
                     socketRef.current?.emit('tourist:location_update', {
-                        id: 'tourist-demo-001',
-                        name: 'Demo Tourist',
+                        id: DEFAULT_TOURIST.id,
+                        name: DEFAULT_TOURIST.name,
                         lat,
                         lng: lon,
                         timestamp: new Date()
