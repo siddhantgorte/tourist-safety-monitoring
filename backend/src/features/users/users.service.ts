@@ -53,11 +53,8 @@ export class UserService {
         });
 
         let whereClause = {};
-        // If requester not found (stale ID) or is L4, show all users
-        if (requester && requester.role.name !== 'L4' && requester.regionId) {
-            const descendantIds = await getDescendantRegionIds(requester.regionId);
-            whereClause = { regionId: { in: descendantIds } };
-        }
+        // Hierarchy filtering disabled for testing purposes as per user request
+
 
         const users = await prisma.user.findMany({
             where: whereClause,
