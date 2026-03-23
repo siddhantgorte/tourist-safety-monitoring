@@ -12,7 +12,7 @@ export interface Geofence {
 export class GeofenceService {
     private socketService = SocketService.getInstance();
 
-    private mockGeofences: Geofence[] = [
+    public static mockGeofences: Geofence[] = [
         {
             id: 'gf-1',
             name: 'North Forest Reserve',
@@ -32,7 +32,7 @@ export class GeofenceService {
     ];
 
     async getAllGeofences() {
-        return this.mockGeofences;
+        return GeofenceService.mockGeofences;
     }
 
     async createGeofence(data: Omit<Geofence, 'id'>) {
@@ -40,21 +40,21 @@ export class GeofenceService {
             id: `gf-${Date.now()}`,
             ...data
         };
-        this.mockGeofences.push(newGf);
+        GeofenceService.mockGeofences.push(newGf);
         return newGf;
     }
 
     async updateGeofence(id: string, updates: Partial<Geofence>) {
-        const index = this.mockGeofences.findIndex(gf => gf.id === id);
+        const index = GeofenceService.mockGeofences.findIndex(gf => gf.id === id);
         if (index === -1) throw new Error('Geofence not found');
-        this.mockGeofences[index] = { ...this.mockGeofences[index], ...updates };
-        return this.mockGeofences[index];
+        GeofenceService.mockGeofences[index] = { ...GeofenceService.mockGeofences[index], ...updates };
+        return GeofenceService.mockGeofences[index];
     }
 
     async deleteGeofence(id: string) {
-        const index = this.mockGeofences.findIndex(gf => gf.id === id);
+        const index = GeofenceService.mockGeofences.findIndex(gf => gf.id === id);
         if (index === -1) throw new Error('Geofence not found');
-        this.mockGeofences.splice(index, 1);
+        GeofenceService.mockGeofences.splice(index, 1);
         return { success: true };
     }
 

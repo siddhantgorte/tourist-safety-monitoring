@@ -1,5 +1,18 @@
 import { Server, Socket } from 'socket.io';
 import { prisma } from '../db/client';
+import { GeofenceService } from '../../features/geofences/geofence.service';
+
+function isPointInPolygon(point: {lat: number, lng: number}, vs: {lat: number, lng: number}[]) {
+    let x = point.lng, y = point.lat;
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i].lng, yi = vs[i].lat;
+        let xj = vs[j].lng, yj = vs[j].lat;
+        let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
 
 
 export class SocketService {
@@ -58,6 +71,35 @@ export class SocketService {
             
             // Generic broadcast for dashboard map
             this.io?.emit('live:tourist_update', data);
+
+            // Real-time Geofence Breach Detection (Ray-Casting Algorithm)
+            const fences = GeofenceService.mockGeofences;
+            if (fences) {
+                for (const gf of fences) {
+                    if (gf.active && isPointInPolygon({lat: data.lat, lng: data.lng}, gf.coordinates)) {
+                        const payload = {
+                            touristId: data.id,
+                            touristName: data.name,
+                            geofenceId: gf.id,
+                            geofenceName: gf.name,
+                            riskLevel: gf.riskLevel,
+                            type: gf.type,
+                            timestamp: new Date()
+                        };
+                        
+                        // 1) Emit to Administrators via Roles
+                        this.broadcastToRole('L2', 'alert:geofence_breach', payload);
+                        this.broadcastToRole('L3', 'alert:geofence_breach', payload);
+                        this.broadcastToRole('L4', 'alert:geofence_breach', payload);
+                        
+                        // 2) Emit directly to the Tourist who breached it
+                        socket.emit('alert:user_geofence_breach', payload);
+                        
+                        // Fallback global targeting
+                        this.io?.to(`user:${data.id}`).emit('alert:user_geofence_breach', payload);
+                    }
+                }
+            }
         });
 
         // Handle Panic

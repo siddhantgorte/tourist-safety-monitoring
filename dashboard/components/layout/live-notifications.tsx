@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { io } from "socket.io-client"
 import { useRouter } from "next/navigation"
 import { useOverviewStats } from "@/features/overview/hooks/use-overview"
+import { toast } from "sonner"
 
 const BACKEND_URL = 'http://localhost:8000';
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"; // Clean ping sound
@@ -70,6 +71,31 @@ export function LiveNotifications() {
       audioRef.current?.play().catch(e => console.log('Audio play blocked:', e));
     });
 
+    socketRef.current.on('alert:geofence_breach', (data: any) => {
+      console.log('⚠️ Geofence Breach Received:', data);
+      
+      const newNotif: Notification = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'ZONE BREACH',
+        priority: data.riskLevel,
+        message: `${data.touristName} crossed into ${data.geofenceName} (${data.type})`,
+        timestamp: new Date(data.timestamp),
+        entityId: data.geofenceId,
+        read: false
+      };
+
+      setNotifications(prev => [newNotif, ...prev].slice(0, 10));
+      setHasNew(true);
+      
+      toast.error(`🚨 GEOFENCE BREACH: ${data.touristName}`, {
+        description: `Entered ${data.riskLevel} RISK ZONE: ${data.geofenceName}.`,
+        duration: 8000,
+      });
+
+      // Play Sound
+      audioRef.current?.play().catch(e => console.log('Audio play blocked:', e));
+    });
+
     return () => {
       socketRef.current?.disconnect();
     }
@@ -86,8 +112,10 @@ export function LiveNotifications() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'CRITICAL': return 'text-red-500';
-      case 'WARNING': return 'text-orange-500';
-      default: return 'text-blue-500';
+      case 'WARNING': 
+      case 'HIGH': return 'text-orange-500';
+      case 'MEDIUM': return 'text-yellow-500';
+      default: return 'text-green-500';
     }
   };
 

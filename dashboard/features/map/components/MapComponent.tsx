@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from "react-leaflet"
+import React, { useEffect, useRef } from "react"
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, Polygon, useMapEvents } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
@@ -33,6 +33,10 @@ interface MapComponentProps {
     officers: boolean
     incidents: boolean
   }
+  isDrawingMode?: boolean
+  tempFenceCoords?: [number, number][]
+  onMapClick?: (coords: [number, number]) => void
+  activeGeofences?: any[]
 }
 
 // Sub-components
@@ -94,6 +98,17 @@ function ResizeHandler({ regionGeometry }: { regionGeometry?: any }) {
   return null
 }
 
+function MapEventsHandler({ isDrawingMode, onMapClick }: { isDrawingMode?: boolean, onMapClick?: (c: [number, number]) => void }) {
+  useMapEvents({
+    click(e) {
+      if (isDrawingMode && onMapClick) {
+        onMapClick([e.latlng.lat, e.latlng.lng])
+      }
+    }
+  })
+  return null
+}
+
 function TouristMarker({ t, isFocused }: { t: any, isFocused: boolean }) {
   const markerRef = useRef<L.Marker>(null);
 
@@ -152,7 +167,11 @@ export default function MapComponent({
   incidents = [],
   focusedTouristId = null,
   focusCoords = null,
-  layers = { tourists: true, officers: true, incidents: true }
+  layers = { tourists: true, officers: true, incidents: true },
+  isDrawingMode = false,
+  tempFenceCoords = [],
+  onMapClick,
+  activeGeofences = []
 }: MapComponentProps) {
   const targetMarkerRef = useRef<L.Marker>(null);
 
@@ -161,6 +180,15 @@ export default function MapComponent({
         targetMarkerRef.current.openPopup();
     }
   }, [focusCoords]);
+
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'CRITICAL': return '#ef4444'; // red-500
+      case 'HIGH': return '#f97316'; // orange-500
+      case 'MEDIUM': return '#eab308'; // yellow-500
+      default: return '#22c55e'; // green-500
+    }
+  }
 
   return (
     <div className="w-full h-full min-h-[500px] rounded-xl overflow-hidden shadow-inner bg-secondary/10 relative">
@@ -178,6 +206,61 @@ export default function MapComponent({
         <ResizeHandler regionGeometry={regionGeometry} />
         <FocusHandler liveTourists={liveTourists} focusedTouristId={focusedTouristId} />
         <CoordinateFocusHandler focusCoords={focusCoords} />
+        <MapEventsHandler isDrawingMode={isDrawingMode} onMapClick={onMapClick} />
+        
+        {/* Draw Mode Tooltip (follows cursor conceptually, but here we just show dots) */}
+        {isDrawingMode && tempFenceCoords.map((coord, i) => (
+            <Marker key={`temp-${i}`} position={coord} icon={new L.DivIcon({ className: 'custom-div-icon', html: `<div style="background-color: #3b82f6; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white;"></div>`, iconSize: [10, 10], iconAnchor: [5, 5] })} />
+        ))}
+
+        {isDrawingMode && tempFenceCoords.length > 1 && (
+            <Polygon 
+                positions={tempFenceCoords} 
+                pathOptions={{ color: '#3b82f6', weight: 3, dashArray: '5, 5', fillColor: '#3b82f6', fillOpacity: 0.2 }} 
+            />
+        )}
+
+        {/* Existing Geofences */}
+        {!isDrawingMode && activeGeofences.filter(gf => gf.active).map(gf => {
+            const color = getRiskColor(gf.riskLevel);
+            let latSum = 0, lngSum = 0;
+            gf.coordinates.forEach((c: any) => { latSum += c.lat; lngSum += c.lng; });
+            const center: [number, number] = [latSum / gf.coordinates.length, lngSum / gf.coordinates.length];
+
+            const pinIcon = new L.DivIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px ${color}80;"></div>`,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            return (
+                <React.Fragment key={gf.id}>
+                    <Polygon 
+                        positions={gf.coordinates.map((c: any) => [c.lat, c.lng])} 
+                        pathOptions={{ 
+                            color: color, 
+                            weight: 2, 
+                            fillColor: color, 
+                            fillOpacity: 0.15 
+                        }} 
+                    >
+                        <Popup>
+                            <div className="font-bold">{gf.name}</div>
+                            <div className="text-[10px] uppercase text-muted-foreground">{gf.type} • {gf.riskLevel} RISK</div>
+                        </Popup>
+                    </Polygon>
+                    {/* Centroid Pin for zoomed out visibility */}
+                    <Marker position={center} icon={pinIcon}>
+                        <Popup>
+                            <div className="font-bold">{gf.name}</div>
+                            <div className="text-[10px] uppercase text-muted-foreground">{gf.type} • {gf.riskLevel} RISK</div>
+                            <div className="text-[10px] italic mt-1 text-muted-foreground">Zone Centerpoint</div>
+                        </Popup>
+                    </Marker>
+                </React.Fragment>
+            );
+        })}
         
         {regionGeometry && (
           <GeoJSON 
