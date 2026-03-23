@@ -3,7 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated } from 'react
 import { AlertTriangle, X, ShieldCheck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export function PanicButton() {
+interface PanicButtonProps {
+    isInline?: boolean;
+}
+
+export function PanicButton({ isInline = false }: PanicButtonProps) {
+
     const [active, setActive] = useState(false);
     const insets = useSafeAreaInsets();
     const [countdown, setCountdown] = useState(5);
@@ -27,14 +32,26 @@ export function PanicButton() {
 
     return (
         <>
-            <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handlePress}
-                className="absolute w-16 h-16 bg-red-600 rounded-full items-center justify-center shadow-2xl shadow-red-400 z-50"
-                style={{ bottom: insets.bottom + 80, right: 24 }}
-            >
-                <AlertTriangle size={32} color="white" />
-            </TouchableOpacity>
+            {isInline ? (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handlePress}
+                    className="bg-red-600 p-5 rounded-3xl flex-row items-center justify-center gap-3 mb-4 shadow-lg shadow-red-200"
+                >
+                    <AlertTriangle size={20} color="white" />
+                    <Text className="text-white font-bold text-lg">Trigger SOS Emergency</Text>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handlePress}
+                    className="absolute w-16 h-16 bg-red-600 rounded-full items-center justify-center shadow-2xl shadow-red-400 z-50"
+                    style={{ bottom: insets.bottom + 80, right: 24 }}
+                >
+                    <AlertTriangle size={32} color="white" />
+                </TouchableOpacity>
+            )}
+
 
             <Modal transparent visible={active} animationType="fade">
                 <View className="flex-1 bg-red-900/95 justify-center items-center p-8">

@@ -17,24 +17,40 @@ const touristIcon = new L.Icon({
   popupAnchor: [0, -32],
 })
 
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl,
-  iconUrl,
-  shadowUrl,
-})
+const incidentIcon = new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);"></div>`,
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
 
 interface MapComponentProps {
   center?: [number, number]
   zoom?: number
   regionGeometry?: any
   liveTourists?: any[]
+  incidents?: any[]
+  focusedTouristId?: string | null
   layers?: {
     tourists: boolean
     officers: boolean
     incidents: boolean
   }
+}
+
+function FocusHandler({ liveTourists, focusedTouristId }: { liveTourists: any[], focusedTouristId: string | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (focusedTouristId) {
+      const tourist = liveTourists.find(t => t.id === focusedTouristId);
+      if (tourist) {
+        map.setView([tourist.lat, tourist.lng], 16, { animate: true });
+      }
+    }
+  }, [focusedTouristId, liveTourists, map]);
+
+  return null;
 }
 
 // Helper component to handle window resize and map invalidation
@@ -80,6 +96,8 @@ export default function MapComponent({
   zoom = 6,
   regionGeometry,
   liveTourists = [],
+  incidents = [],
+  focusedTouristId = null,
   layers = { tourists: true, officers: true, incidents: true }
 }: MapComponentProps) {
   return (
@@ -96,6 +114,7 @@ export default function MapComponent({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ResizeHandler regionGeometry={regionGeometry} />
+        <FocusHandler liveTourists={liveTourists} focusedTouristId={focusedTouristId} />
         
         {regionGeometry && (
           <GeoJSON 
@@ -120,6 +139,23 @@ export default function MapComponent({
                 <p className="font-bold">{t.name}</p>
                 <p className="text-xs text-muted-foreground">Live Tracking Active</p>
                 <p className="text-[10px] italic">Last update: {new Date(t.lastUpdate).toLocaleTimeString()}</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {layers.incidents && incidents.map((inc) => (
+          <Marker 
+            key={inc.id} 
+            position={[inc.latitude, inc.longitude]}
+            icon={incidentIcon}
+          >
+            <Popup>
+              <div className="p-1">
+                <p className="font-bold text-red-600">{inc.type}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">{inc.severity} SEVERITY</p>
+                <p className="text-xs">{inc.description}</p>
+                <p className="text-[10px] mt-2 italic">Reported: {new Date(inc.createdAt).toLocaleTimeString()}</p>
               </div>
             </Popup>
           </Marker>

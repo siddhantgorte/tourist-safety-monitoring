@@ -51,6 +51,7 @@ export class DashboardService {
 
     return {
       regionName: user.region?.name || 'Global',
+      regionId: user.region?.id,
       regionGeometry: user.region?.geometry,
       activeIncidents: { count: incidentCount, delta: 0, trend: 'neutral' },
       officersOnline: { count: officerCount, delta: 0, details: { onDuty: officerCount, offDuty: 0 } },

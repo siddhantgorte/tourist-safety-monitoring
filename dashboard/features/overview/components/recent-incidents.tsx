@@ -7,6 +7,7 @@ import { ChevronRight, Loader2, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function RecentIncidents() {
+  const router = useRouter();
   const { data: incidents, isLoading, error } = useRecentIncidentsOverview();
 
   const getSeverityColor = (severity: string) => {
@@ -50,7 +51,7 @@ export function RecentIncidents() {
       </Card>
     );
   }
-const router=useRouter()
+
   return (
     <Card className="bg-card border-border p-6">
       <div className="flex items-center justify-between mb-4">

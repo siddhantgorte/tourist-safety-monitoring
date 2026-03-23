@@ -50,3 +50,12 @@ export const useAssignOfficers = () => {
         },
     });
 };
+
+export const useIncidentMessages = (id: string) => {
+    return useQuery({
+        queryKey: ['incident-messages', id],
+        queryFn: () => incidentService.getIncidentMessages(id),
+        enabled: !!id,
+        refetchInterval: false,
+    });
+};

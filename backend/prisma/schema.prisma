@@ -161,6 +161,17 @@ model Incident {
   actions       IncidentAction[]
   assignments   IncidentAssignment[]
   notifications Notification[]
+  messages      IncidentMessage[]
+}
+
+model IncidentMessage {
+  id         String   @id @default(uuid())
+  incidentId String
+  senderRole String   // 'tourist' | 'admin' | 'system'
+  senderId   String?  // Optional, can be tourist ID or admin user ID
+  content    String
+  timestamp  DateTime @default(now())
+  incident   Incident @relation(fields: [incidentId], references: [id])
 }
 
 model IncidentAssignment {

@@ -5,7 +5,7 @@ import { useUsers } from "../../users/hooks/use-users"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, AlertCircle, MapPin, Clock, Edit2, Users, AlertTriangle, ArrowLeft } from "lucide-react"
+import { Loader2, AlertCircle, MapPin, Clock, Edit2, Users, AlertTriangle, ArrowLeft, MessageSquare } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -100,6 +100,10 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
                         <p className="text-sm text-muted-foreground">ID: {incident.id} • Reported: {new Date(incident.createdAt).toLocaleString()}</p>
                     </div>
                     <div className="flex gap-2">
+                        <Button variant="default" size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => router.push(`/incidents/${incident.id}/chat`)}>
+                            <MessageSquare className="w-4 h-4" />
+                            Chat with Tourist
+                        </Button>
                         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="gap-2">
@@ -204,10 +208,21 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
                         </div>
                         {incident.tourist && (
                             <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-primary" />
-                                    Tourist Information
-                                </h4>
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-semibold flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-primary" />
+                                        Tourist Information
+                                    </h4>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-7 text-[10px] gap-1"
+                                        onClick={() => incident.tourist && router.push(`/map?touristId=${incident.tourist.id}`)}
+                                    >
+                                        <MapPin size={12} />
+                                        Show on Map
+                                    </Button>
+                                </div>
                                 <p className="text-sm font-medium">{incident.tourist.fullName}</p>
                                 <p className="text-xs text-muted-foreground">{incident.tourist.phoneNumber} • {incident.tourist.nationality}</p>
                             </div>

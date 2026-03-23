@@ -1,6 +1,6 @@
 import { prisma } from '../../shared/db/client';
 import { SocketService } from '../../shared/utils/socket.service';
-import { getDescendantRegionIds } from '../../shared/utils/region';
+import { getDescendantRegionIds, getAncestorRegionIds } from '../../shared/utils/region';
 
 export class IncidentService {
     private socketService = SocketService.getInstance();
@@ -76,14 +76,44 @@ export class IncidentService {
     }
 
     async createIncident(data: any) {
+        let regionId = data.regionId;
+        
+        // If no regionId provided (e.g. from mobile), try to find a default district
+        if (!regionId) {
+            const defaultRegion = await prisma.region.findFirst({
+                where: { type: 'DISTRICT' }
+            });
+            regionId = defaultRegion?.id;
+        }
+
+        const inputData = { ...data };
+
+        // Safeguard for mock touristId from mobile app
+        if (inputData.touristId) {
+            const touristExists = await prisma.tourist.findUnique({ where: { id: inputData.touristId }});
+            if (!touristExists) {
+                const anyTourist = await prisma.tourist.findFirst();
+                if (anyTourist) {
+                    inputData.touristId = anyTourist.id;
+                } else {
+                    delete inputData.touristId;
+                }
+            }
+        }
+
         const newIncident = await prisma.incident.create({
             data: {
-                ...data,
+                ...inputData,
+                regionId,
                 status: 'OPEN'
             }
         });
 
-        this.socketService.notifyNewIncident(newIncident);
+        let ancestors: string[] = [];
+        if (newIncident.regionId) {
+            ancestors = await getAncestorRegionIds(newIncident.regionId);
+        }
+        this.socketService.notifyNewIncident(newIncident, ancestors);
         return newIncident;
     }
 
@@ -126,5 +156,12 @@ export class IncidentService {
         this.socketService.broadcastToRole('L2', 'incident:assignment', { incidentId: id, officerIds });
 
         return await this.getIncidentById(id);
+    }
+
+    async getIncidentMessages(incidentId: string) {
+        return await prisma.incidentMessage.findMany({
+            where: { incidentId },
+            orderBy: { timestamp: 'asc' }
+        });
     }
 }

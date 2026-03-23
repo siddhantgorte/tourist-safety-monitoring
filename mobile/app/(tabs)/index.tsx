@@ -2,6 +2,8 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, MapPin, Clock, AlertTriangle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { PanicButton } from '@/components/shared/PanicButton';
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -53,7 +55,10 @@ export default function HomeScreen() {
 
           {/* Quick Actions */}
           <Text className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-4 ml-1">Live Actions</Text>
+          <PanicButton isInline />
+
           <TouchableOpacity className="bg-emerald-500 p-5 rounded-3xl flex-row items-center justify-center gap-3 mb-4 shadow-lg shadow-emerald-200">
+
             <Shield size={20} color="white" />
             <Text className="text-white font-bold text-lg">Verify Digital ID</Text>
           </TouchableOpacity>

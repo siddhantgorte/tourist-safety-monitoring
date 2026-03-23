@@ -58,7 +58,10 @@ export class UserService {
 
         const users = await prisma.user.findMany({
             where: whereClause,
-            include: { role: true, region: true }
+            include: { 
+                role: true, 
+                region: { select: { id: true, name: true } } 
+            }
         });
 
         return users.map((u: any) => ({

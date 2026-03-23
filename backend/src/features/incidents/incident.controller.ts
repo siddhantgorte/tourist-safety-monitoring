@@ -31,15 +31,27 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/incidents/:id/messages
+router.get('/:id/messages', async (req: Request, res: Response) => {
+    try {
+        const data = await incidentService.getIncidentMessages(req.params.id as string);
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch messages' });
+    }
+});
+
 // POST /api/incidents
 router.post('/', async (req: Request, res: Response) => {
     try {
         const data = await incidentService.createIncident(req.body);
         res.status(201).json({ success: true, data });
     } catch (error) {
+        console.error('Failed to create incident:', error);
         res.status(500).json({ success: false, message: 'Failed to create incident' });
     }
 });
+
 
 // PATCH /api/incidents/:id
 router.patch('/:id', async (req: Request, res: Response) => {

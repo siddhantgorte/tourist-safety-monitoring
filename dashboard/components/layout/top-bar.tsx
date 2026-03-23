@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+import { LiveNotifications } from "./live-notifications"
+
 interface TopBarProps {
   userRole?: "L1" | "L2" | "L3" | "L4"
   onRoleChange?: (role: "L1" | "L2" | "L3" | "L4") => void
@@ -37,10 +39,7 @@ export function TopBar({ userRole = "L2", onRoleChange }: TopBarProps) {
           <span>System Operational</span>
         </div>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border-2 border-background"></span>
-        </Button>
+        <LiveNotifications />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

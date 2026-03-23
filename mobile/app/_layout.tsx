@@ -60,7 +60,7 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Terms & Safety' }} />
         <Stack.Screen name="incident-report" options={{ headerShown: false, presentation: 'card' }} />
       </Stack>
-      <PanicButton />
     </ThemeProvider>
+
   );
 }

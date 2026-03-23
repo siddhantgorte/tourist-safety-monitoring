@@ -1,45 +1,84 @@
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Info } from 'lucide-react-native';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 export default function MapScreen() {
+    const [location, setLocation] = useState<Location.LocationObject | null>(null);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setErrorMsg('Permission to access location was denied');
+                setLoading(false);
+                return;
+            }
+
+            let loc = await Location.getCurrentPositionAsync({});
+            setLocation(loc);
+            setLoading(false);
+        })();
+    }, []);
+
+    const initialRegion = location ? {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+    } : {
+        latitude: 15.5494, // Default to Calangute, Goa if location not available
+        longitude: 73.7535,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
-            {/* Simulation of a Map */}
-            <View className="flex-1 bg-slate-200 items-center justify-center relative overflow-hidden">
-                <View className="absolute inset-0 opacity-10 flex-row flex-wrap">
-                    {Array.from({ length: 200 }).map((_, i) => (
-                        <View key={i} className="w-10 h-10 border-[0.5px] border-slate-400" />
-                    ))}
-                </View>
-
-                <View className="items-center z-10">
-                    <View className="bg-emerald-500/20 p-8 rounded-full border border-emerald-500/50">
-                        <MapPin size={48} color="#10b981" fill="#10b981" />
+            <View className="flex-1 relative">
+                {loading ? (
+                    <View className="flex-1 items-center justify-center bg-slate-100">
+                        <ActivityIndicator size="large" color="#10b981" />
+                        <Text className="text-slate-500 mt-4">Fetching live safety data...</Text>
                     </View>
-                    <Text className="text-slate-900 font-bold text-xl mt-4">Interactive Safety Map</Text>
-                    <Text className="text-slate-500 text-center px-12 mt-2">
-                        Real-time tracking and geo-fence alerts active for Calangute region.
-                    </Text>
-                </View>
-
-                {/* Floating Zone Info */}
-                <View className="absolute bottom-8 left-8 right-8 bg-white/90 p-4 rounded-3xl border border-slate-200 backdrop-blur-md shadow-lg">
-                    <View className="flex-row justify-between items-start mb-2">
-                        <View>
-                            <Text className="text-slate-900 font-bold text-lg">Calangute - Zone A</Text>
-                            <Text className="text-slate-500 text-xs uppercase font-bold">Safe Monitored Area</Text>
-                        </View>
-                        <View className="bg-emerald-100 px-3 py-1 rounded-full">
-                            <Text className="text-emerald-700 text-xs font-bold">ACTIVE</Text>
-                        </View>
-                    </View>
-                    <View className="flex-row items-center gap-2 mt-2 pt-2 border-t border-slate-100">
-                        <Info size={14} color="#64748b" />
-                        <Text className="text-slate-500 text-xs">Stay within marked boundaries for optimal assistance.</Text>
-                    </View>
-                </View>
+                ) : (
+                    <MapView
+                        style={StyleSheet.absoluteFillObject}
+                        provider={PROVIDER_DEFAULT}
+                        initialRegion={initialRegion}
+                        showsUserLocation={true}
+                        showsMyLocationButton={true}
+                    >
+                        {location && (
+                            <Marker
+                                coordinate={{
+                                    latitude: location.coords.latitude,
+                                    longitude: location.coords.longitude,
+                                }}
+                                title="Your Location"
+                                description="You are currently in a monitored zone"
+                            >
+                                <View className="bg-emerald-500 p-2 rounded-full border-2 border-white shadow-lg">
+                                    <MapPin size={24} color="white" fill="white" />
+                                </View>
+                            </Marker>
+                        )}
+                        
+                        {/* Simulation of a Geo-fence Zone */}
+                        <Marker
+                            coordinate={{ latitude: 15.5494, longitude: 73.7535 }}
+                            title="Calangute Safety Hub"
+                            description="Main monitoring station"
+                        />
+                    </MapView>
+                )}
             </View>
         </SafeAreaView>
+
     );
 }
+

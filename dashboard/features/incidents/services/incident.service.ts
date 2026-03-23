@@ -21,5 +21,9 @@ export const incidentService = {
     assignOfficers: async (id: string, officerIds: string[]): Promise<Incident> => {
         const res = await api.post(`/incidents/${id}/assign`, { officerIds });
         return res.data.data;
+    },
+    getIncidentMessages: async (id: string): Promise<any[]> => {
+        const res = await api.get(`/incidents/${id}/messages`);
+        return res.data.data;
     }
 };

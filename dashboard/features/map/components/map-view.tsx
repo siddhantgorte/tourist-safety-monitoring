@@ -8,7 +8,12 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { io } from "socket.io-client"
+
+import { useIncidents } from "@/features/incidents/hooks/use-incidents"
+import { useQueryClient } from "@tanstack/react-query"
+import { useSearchParams } from "next/navigation"
 
 const MapComponent = dynamic(() => import("./MapComponent"), {
   ssr: false,
@@ -19,8 +24,15 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
   )
 })
 
+const BACKEND_URL = 'http://localhost:8000';
+
 export function MapView() {
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const touristIdParam = searchParams.get('touristId');
+
   const { data: stats, isLoading: statsLoading } = useOverviewStats();
+  const { data: incidentsData, isLoading: incLoading } = useIncidents();
   const { data: geofences, isLoading: gfLoading } = useGeofences();
   const updateGf = useUpdateGeofence();
 
@@ -29,6 +41,68 @@ export function MapView() {
     officers: true,
     incidents: true
   });
+
+  const [liveTourists, setLiveTourists] = useState<any[]>([]);
+  const [liveIncidents, setLiveIncidents] = useState<any[]>([]);
+  const socketRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (statsLoading) return;
+
+    // Initial data from stats/queries
+    if (stats?.liveTourists) setLiveTourists(stats.liveTourists);
+    if (incidentsData) setLiveIncidents(incidentsData);
+
+    // Initialize Socket with Region Awareness
+    socketRef.current = io(BACKEND_URL, {
+      auth: {
+        userId: '0282ddf2-e676-492d-a89c-89fd57ace2a9',
+        role: 'L2',
+        regionId: stats?.regionId
+      }
+    });
+
+    socketRef.current.on('connect', () => {
+      console.log('✅ Dashboard SOC Connected (Region:', stats?.regionName, ')');
+    });
+
+    socketRef.current.on('live:tourist_update', (data: any) => {
+      console.log('📍 Real-time Location Received:', data);
+      setLiveTourists(prev => {
+        const index = prev.findIndex(t => t.id === data.id);
+        const updatedTourist = { ...data, lastUpdate: new Date() };
+        if (index > -1) {
+          const newList = [...prev];
+          newList[index] = updatedTourist;
+          return newList;
+        } else {
+          return [...prev, updatedTourist];
+        }
+      });
+    });
+
+    socketRef.current.on('incident:new', (data: any) => {
+      console.log('🚨 New Incident Reported:', data);
+      // Construct a marker-compatible object from the socket payload
+      const newInc = {
+        id: data.entityId,
+        type: data.payload.type,
+        severity: data.payload.priority,
+        latitude: data.payload.location.lat,
+        longitude: data.payload.location.lng,
+        createdAt: data.timestamp,
+        description: 'New incoming report...'
+      };
+      
+      setLiveIncidents(prev => [newInc, ...prev]);
+      // Refetch for full details
+      queryClient.invalidateQueries({ queryKey: ['incidents-list'] });
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    }
+  }, [stats?.liveTourists, incidentsData]);
 
   const handleToggle = async (id: string, active: boolean) => {
     await updateGf.mutateAsync({ id, active });
@@ -88,7 +162,7 @@ export function MapView() {
                   <span className="text-sm">Tourists</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{stats?.touristsMonitored?.count ?? 0}</Badge>
+                  <Badge variant="secondary">{liveTourists.length}</Badge>
                   <Switch checked={layers.tourists} onCheckedChange={(val) => setLayers((prev: any) => ({ ...prev, tourists: val }))} />
                 </div>
               </div>
@@ -108,7 +182,7 @@ export function MapView() {
                   <span className="text-sm">Incidents</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="destructive">Live</Badge>
+                  <Badge variant="destructive">{liveIncidents.length}</Badge>
                   <Switch checked={layers.incidents} onCheckedChange={(val) => setLayers((prev: any) => ({ ...prev, incidents: val }))} />
                 </div>
               </div>
@@ -147,7 +221,9 @@ export function MapView() {
         <div className="lg:col-span-3 min-h-[600px] relative rounded-xl overflow-hidden border border-border">
           <MapComponent 
             regionGeometry={stats?.regionGeometry}
-            liveTourists={stats?.liveTourists}
+            liveTourists={liveTourists}
+            incidents={liveIncidents}
+            focusedTouristId={touristIdParam}
             layers={layers}
           />
           
@@ -158,7 +234,7 @@ export function MapView() {
               <span className="font-semibold text-[10px] uppercase">SOC CONNECTED - {stats?.regionName || 'GLOBAL'}</span>
             </div>
             <p className="text-[10px] text-muted-foreground italic">
-              Lat: 15.4989° N, Lng: 73.8278° E • Accuracy: 3m
+              Real-time synchronization active • {liveTourists.length} tracked assets
             </p>
           </div>
         </div>
