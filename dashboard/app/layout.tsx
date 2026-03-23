@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import Providers from "@/lib/query-provider"
+import { AuthProvider } from "@/components/providers/auth-provider"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -14,8 +15,6 @@ export const metadata: Metadata = {
   generator: 'v0.app'
 }
 
-import { RoleSwitcher } from "@/components/layout/RoleSwitcher"
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,9 +24,10 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <Providers>
-          {children}
-          <RoleSwitcher />
-          <Analytics />
+          <AuthProvider>
+            {children}
+            <Analytics />
+          </AuthProvider>
         </Providers>
       </body>
     </html>

@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, AlertCircle, MapPin, Clock, ChevronRight, Filter } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useAuth } from "@/components/providers/auth-provider"
 
 export function IncidentsView() {
     const router = useRouter();
     const { data: incidents, isLoading, error } = useIncidents();
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<'all' | 'assigned'>('all');
 
     if (isLoading) {
         return (
@@ -44,6 +48,30 @@ export function IncidentsView() {
                 </div>
             </div>
 
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex gap-2 p-1 bg-secondary/20 rounded-lg w-max border border-border">
+                    <Button 
+                        variant={activeTab === 'all' ? 'default' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setActiveTab('all')}
+                        className="px-6"
+                    >
+                        All Regional Incidents
+                    </Button>
+                    <Button 
+                        variant={activeTab === 'assigned' ? 'default' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setActiveTab('assigned')}
+                        className="px-6 relative"
+                    >
+                        Assigned to Me
+                        {(incidents || []).filter((i: any) => i.assignments?.some((a: any) => a.userId === user?.id)).length > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_10px_rgba(244,63,94,0.8)]" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+
             <Card className="border-border bg-card/50 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -58,16 +86,25 @@ export function IncidentsView() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {incidents?.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center text-muted-foreground italic">
-                                        No incidents found in your region.
-                                    </td>
-                                </tr>
-                            ) : (
-                                incidents?.map((incident: any) => (
+                            {(()=>{
+                                const displayedIncidents = incidents?.filter((inc: any) => {
+                                    if (activeTab === 'all') return true;
+                                    return inc.assignments?.some((a: any) => a.userId === user?.id);
+                                });
+
+                                if (!displayedIncidents || displayedIncidents.length === 0) {
+                                    return (
+                                        <tr>
+                                            <td colSpan={6} className="p-12 text-center text-muted-foreground italic">
+                                                {activeTab === 'all' ? 'No incidents found in your region.' : 'You have no assigned incidents.'}
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+
+                                return displayedIncidents.map((incident: any) => (
                                     <tr 
-                                        key={incident.id} 
+                                        key={incident.id}  
                                         className="hover:bg-muted/50 transition-colors cursor-pointer group"
                                         onClick={() => router.push(`/incidents/${incident.id}`)}
                                     >
@@ -104,8 +141,8 @@ export function IncidentsView() {
                                             </Button>
                                         </td>
                                     </tr>
-                                ))
-                            )}
+                                ));
+                            })()}
                         </tbody>
                     </table>
                 </div>

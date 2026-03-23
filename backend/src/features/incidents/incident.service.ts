@@ -30,6 +30,7 @@ export class IncidentService {
             include: { 
                 region: true, 
                 tourist: true,
+                assignments: { include: { user: true } },
                 _count: { select: { assignments: true } }
             }
         });

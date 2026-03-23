@@ -14,13 +14,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 import { LiveNotifications } from "./live-notifications"
+import { useAuth } from "@/components/providers/auth-provider"
 
-interface TopBarProps {
-  userRole?: "L1" | "L2" | "L3" | "L4"
-  onRoleChange?: (role: "L1" | "L2" | "L3" | "L4") => void
-}
+export function TopBar() {
+  const { user, logout } = useAuth()
 
-export function TopBar({ userRole = "L2", onRoleChange }: TopBarProps) {
   return (
     <header className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
       <div className="flex items-center gap-4">
@@ -45,7 +43,7 @@ export function TopBar({ userRole = "L2", onRoleChange }: TopBarProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="flex items-center gap-2 pl-2 pr-4">
               <User className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Senior Officer</span>
+              <span className="hidden sm:inline">{user?.fullName || user?.username || 'Loading...'}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -54,18 +52,7 @@ export function TopBar({ userRole = "L2", onRoleChange }: TopBarProps) {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Switch Role (Demo)</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onRoleChange?.("L1")}>
-              L1 - Constable {userRole === "L1" && "✓"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange?.("L2")}>
-              L2 - Officer {userRole === "L2" && "✓"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange?.("L3")}>
-              L3 - Commander {userRole === "L3" && "✓"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Logout</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={logout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

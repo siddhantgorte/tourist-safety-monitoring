@@ -52,9 +52,12 @@ export class UserService {
             include: { role: true }
         });
 
-        let whereClause = {};
-        // Hierarchy filtering disabled for testing purposes as per user request
-
+        let whereClause: any = {};
+        
+        if (requester && requester.role.name !== 'L4' && requester.regionId) {
+            const descendantIds = await getDescendantRegionIds(requester.regionId);
+            whereClause.regionId = { in: descendantIds };
+        }
 
         const users = await prisma.user.findMany({
             where: whereClause,

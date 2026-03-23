@@ -2,6 +2,7 @@
 
 import { useIncidentDetail, useUpdateIncidentStatus, useUpdateIncident, useAssignOfficers } from "../hooks/use-incidents"
 import { useUsers } from "../../users/hooks/use-users"
+import { useAuth } from "@/components/providers/auth-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,6 +27,7 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
 
     const { data: incident, isLoading, error } = useIncidentDetail(id);
     const { data: users } = useUsers();
+    const { user: currentUser } = useAuth();
 
     const updateStatusMutation = useUpdateIncidentStatus();
     const updateIncidentMutation = useUpdateIncident();
@@ -74,7 +76,25 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
         );
     }
 
-    const officers = users || [];
+    const ROLE_LEVELS: Record<string, number> = {
+        'L1': 1,
+        'L2': 2,
+        'L3': 3,
+        'L4': 4
+    };
+
+    const officers = (users || []).filter((u: any) => {
+        if (!currentUser) return false;
+        if (u.id === currentUser.id) return false;
+
+        // Exclude officers who are already assigned to this incident
+        if (incident?.assignments?.some((a: any) => a.userId === u.id)) return false;
+
+        const currentRank = ROLE_LEVELS[currentUser.roleName] || 0;
+        const targetRank = ROLE_LEVELS[u.roleName] || 0;
+
+        return targetRank < currentRank;
+    });
 
     return (
         <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -179,8 +199,13 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
                                     </div>
                                 </div>
                                 <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>Cancel</Button>
-                                    <Button onClick={handleAssign}>Confirm Assignment ({selectedOfficerIds.length})</Button>
+                                    <Button variant="outline" onClick={() => setIsAssignModalOpen(false)} disabled={assignOfficersMutation.isPending}>Cancel</Button>
+                                    <Button 
+                                        onClick={handleAssign} 
+                                        disabled={assignOfficersMutation.isPending || selectedOfficerIds.length === 0}
+                                    >
+                                        {assignOfficersMutation.isPending ? 'Assigning...' : `Confirm Assignment (${selectedOfficerIds.length})`}
+                                    </Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
