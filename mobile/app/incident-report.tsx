@@ -7,7 +7,8 @@ import { Send, Camera, Image as ImageIcon, AlertCircle, X, CheckCircle, ChevronL
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import axios from 'axios';
-import { DEFAULT_TOURIST } from '../constants/User';
+import { useAtom } from 'jotai';
+import { userAtom } from '../atoms/auth';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
@@ -28,6 +29,7 @@ const SEVERITIES = [
 
 export default function IncidentReportScreen() {
     const { id } = useLocalSearchParams();
+    const [user] = useAtom(userAtom);
     const [step, setStep] = useState<'form' | 'chat'>(id ? 'chat' : 'form');
     const [description, setDescription] = useState('');
     const [type, setType] = useState('OTHER');
@@ -63,7 +65,7 @@ export default function IncidentReportScreen() {
 
             // Connect to Socket
             socketRef.current = io(BACKEND_URL, {
-                auth: { userId: DEFAULT_TOURIST.id, role: 'tourist' }
+                auth: { userId: user?.id, role: 'tourist' }
             });
 
             socketRef.current.on('connect', () => {
@@ -72,7 +74,6 @@ export default function IncidentReportScreen() {
 
             socketRef.current.on('chat:receive', (msg) => {
                 setChat(prev => {
-                    // Prevent duplicates if already shown optimistically (though we don't have matching IDs)
                     return [...prev, {
                         id: msg.id,
                         role: msg.senderRole === 'TOURIST' ? 'user' : msg.senderRole === 'SYSTEM' ? 'system' : 'admin',
@@ -112,7 +113,7 @@ export default function IncidentReportScreen() {
                 description,
                 latitude: locationData.latitude,
                 longitude: locationData.longitude,
-                touristId: DEFAULT_TOURIST.id,
+                touristId: user?.id,
                 status: 'OPEN'
             });
 
@@ -131,10 +132,6 @@ export default function IncidentReportScreen() {
         }
     };
 
-    const simulateAddMedia = () => {
-        setMedia([...media, 'https://picsum.photos/200/200']);
-    };
-
     const sendMessage = () => {
         if (!message) return;
         
@@ -142,7 +139,7 @@ export default function IncidentReportScreen() {
             incidentId: caseId,
             content: message,
             senderRole: 'TOURIST',
-            senderId: 'tourist-demo-001'
+            senderId: user?.id
         });
 
         setMessage('');
@@ -232,7 +229,6 @@ export default function IncidentReportScreen() {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1 bg-white"
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <View className="bg-slate-50 p-4 pt-2 border-b border-slate-100 flex-row items-center gap-3">
                     <TouchableOpacity onPress={() => router.back()} className="mr-1">

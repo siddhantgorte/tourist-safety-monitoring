@@ -23,6 +23,48 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/auth/tourist/signup
+router.post('/tourist/signup', async (req: Request, res: Response) => {
+    try {
+        const { email, password, fullName, phoneNumber, nationality, tripDuration, citiesExploring } = req.body;
+        
+        if (!email || !password || !fullName || !phoneNumber || !nationality) {
+            return res.status(400).json({ success: false, message: 'Required fields are missing' });
+        }
+
+        const data = await authService.touristSignup({ 
+            email, 
+            passwordString: password, 
+            fullName, 
+            phoneNumber, 
+            nationality,
+            tripDuration,
+            citiesExploring
+        });
+        res.status(201).json({ success: true, data });
+    } catch (error: any) {
+        console.error('Tourist Signup error:', error.message);
+        res.status(400).json({ success: false, message: error.message || 'Signup failed' });
+    }
+});
+
+// POST /api/auth/tourist/login
+router.post('/tourist/login', async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+
+        const data = await authService.touristLogin(email, password);
+        res.json({ success: true, data });
+    } catch (error: any) {
+        console.error('Tourist Login error:', error.message);
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+});
+
 // GET /api/auth/me
 router.get('/me', authenticateToken, async (req: Request, res: Response) => {
     try {

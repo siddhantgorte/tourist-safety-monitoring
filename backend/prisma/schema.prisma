@@ -54,11 +54,15 @@ model Permission {
 }
 
 model Tourist {
-  id            String         @id @default(uuid())
-  phoneNumber   String         @unique
-  fullName      String?
-  nationality   String?
-  createdAt     DateTime       @default(now())
+  id              String         @id @default(uuid())
+  email           String         @unique
+  password        String
+  phoneNumber     String         @unique
+  fullName        String?
+  nationality     String?
+  citiesExploring String?
+  tripDuration    Int?
+  createdAt       DateTime       @default(now())
   devices       Device[]
   incidents     Incident[]
   notifications Notification[]

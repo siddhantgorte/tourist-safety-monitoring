@@ -99,6 +99,8 @@ export class IncidentService {
                         data: {
                             id: 'tourist-demo-001',
                             fullName: 'Johnathan Tourist',
+                            email: 'john@example.com',
+                            password: '$2b$10$7R6v7E1WvYF9.XqH7t2u3e6V7R6v7E1WvYF9.XqH7t2u3e6V7R6v7', // dummy hash
                             phoneNumber: '+919988776655',
                             nationality: 'Indian'
                         }

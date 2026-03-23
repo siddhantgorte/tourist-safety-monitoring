@@ -13,6 +13,17 @@ export interface User {
     isOnDuty: boolean;
 }
 
+export interface Tourist {
+    id: string;
+    email: string;
+    fullName: string | null;
+    phoneNumber: string;
+    nationality: string | null;
+    citiesExploring: string | null;
+    tripDuration: number | null;
+    createdAt: string;
+}
+
 export const usersService = {
     getUsers: async () => {
         const res = await api.get('/users');
@@ -29,6 +40,10 @@ export const usersService = {
     deleteUser: async (id: string) => {
         const res = await api.delete(`/users/${id}`);
         return res.data;
+    },
+    getTourists: async () => {
+        const res = await api.get('/tourists/all'); // I should create this endpoint in the backend
+        return res.data.data;
     }
 };
 
@@ -36,6 +51,13 @@ export const useUsers = () => {
     return useQuery({
         queryKey: ['users-list'],
         queryFn: usersService.getUsers,
+    });
+};
+
+export const useTourists = () => {
+    return useQuery({
+        queryKey: ['tourists-list'],
+        queryFn: usersService.getTourists,
     });
 };
 

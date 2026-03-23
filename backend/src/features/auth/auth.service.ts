@@ -36,13 +36,13 @@ export class AuthService {
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-        // Update online status seamlessly in background without awaiting blocks if we didn't want to, but standard await is fine.
+        // Update online status
         await prisma.user.update({
             where: { id: user.id },
             data: { isOnline: true }
         });
 
-        // Omit the password hash from the returned user object
+        // Omit the password hash
         const { password, ...userWithoutPassword } = user;
 
         return {
@@ -50,6 +50,74 @@ export class AuthService {
                 ...userWithoutPassword,
                 roleName: user.role.name,
                 regionName: user.region?.name || null
+            },
+            token
+        };
+    }
+
+    async touristSignup(data: { 
+        email: string, 
+        passwordString: string, 
+        fullName: string, 
+        phoneNumber: string, 
+        nationality: string,
+        tripDuration?: string,
+        citiesExploring?: string
+    }) {
+        const hashedPassword = await bcrypt.hash(data.passwordString, 10);
+        
+        const tourist = await prisma.tourist.create({
+            data: {
+                email: data.email,
+                password: hashedPassword,
+                fullName: data.fullName,
+                phoneNumber: data.phoneNumber,
+                nationality: data.nationality,
+                tripDuration: data.tripDuration ? parseInt(data.tripDuration) : undefined,
+                citiesExploring: data.citiesExploring
+            }
+        });
+
+        const token = jwt.sign({ 
+            id: tourist.id, 
+            email: (tourist as any).email, 
+            role: 'tourist' 
+        }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+        // Omit password hash
+        const { password, ...touristWithoutPassword } = tourist as any;
+
+        return { tourist: touristWithoutPassword, token };
+    }
+
+    async touristLogin(email: string, passwordString: string) {
+        const tourist = await prisma.tourist.findUnique({
+            where: { email }
+        });
+
+        if (!tourist) {
+            throw new Error('Invalid email or password');
+        }
+
+        const isPasswordValid = await bcrypt.compare(passwordString, (tourist as any).password);
+        
+        if (!isPasswordValid) {
+            throw new Error('Invalid email or password');
+        }
+
+        const token = jwt.sign({ 
+            id: tourist.id, 
+            email: (tourist as any).email, 
+            role: 'tourist' 
+        }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+        // Omit password hash
+        const { password, ...touristWithoutPassword } = tourist as any;
+
+        return {
+            user: {
+                ...touristWithoutPassword,
+                role: 'tourist'
             },
             token
         };

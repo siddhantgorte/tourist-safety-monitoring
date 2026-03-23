@@ -6,10 +6,12 @@ import { Shield, Zap, Wind, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
 import { io } from 'socket.io-client';
-import { DEFAULT_TOURIST } from '../../constants/User';
+import { useAtom } from 'jotai';
+import { userAtom } from '../../atoms/auth';
 
 // Constants for Safety Monitoring
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
+
 // Helper to calculate distance in KM
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of Earth in KM
@@ -23,6 +25,7 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
 };
 
 export default function SafetyScreen() {
+    const [user] = useAtom(userAtom);
     const [scores, setScores] = useState({
         movement: 9.5,
         network: 8.0,
@@ -43,8 +46,8 @@ export default function SafetyScreen() {
         // Initialize Socket
         socketRef.current = io(BACKEND_URL, {
             auth: {
-                userId: DEFAULT_TOURIST.id,
-                name: DEFAULT_TOURIST.name,
+                userId: user?.id,
+                name: user?.fullName,
                 role: 'tourist'
             }
         });
@@ -67,8 +70,8 @@ export default function SafetyScreen() {
 
                     // Emit to SOC
                     socketRef.current?.emit('tourist:location_update', {
-                        id: DEFAULT_TOURIST.id,
-                        name: DEFAULT_TOURIST.name,
+                        id: user?.id,
+                        name: user?.fullName,
                         lat,
                         lng: lon,
                         timestamp: new Date()
@@ -127,7 +130,7 @@ export default function SafetyScreen() {
             locationSubscription?.remove();
             socketRef.current?.disconnect();
         };
-    }, []);
+    }, [user]);
 
     const factors = [
         { id: 1, label: 'Movement Consistency', score: scores.movement, icon: <Navigation size={20} color="#10b981" />, color: 'emerald', status: status.movement },
@@ -195,5 +198,3 @@ export default function SafetyScreen() {
         </SafeAreaView>
     );
 }
-
-

@@ -61,8 +61,24 @@ export class SocketService {
             console.log(`Socket disconnected: ${socket.id}`);
         });
 
+        // Cache for Geofences to avoid DB pressure
+        let cachedFences: any[] = [];
+        let lastCacheUpdate = 0;
+        const CACHE_TTL = 30000; // 30 seconds
+
+        const getFences = async () => {
+            const now = Date.now();
+            if (now - lastCacheUpdate > CACHE_TTL || cachedFences.length === 0) {
+                const gfService = new GeofenceService();
+                cachedFences = await gfService.getActiveGeofences();
+                lastCacheUpdate = now;
+                console.log(`🔄 Geofence Cache Refreshed: ${cachedFences.length} fences`);
+            }
+            return cachedFences;
+        };
+
         // Handle incoming tracking updates from Tourist App
-        socket.on('tourist:location_update', (data) => {
+        socket.on('tourist:location_update', async (data) => {
             console.log(`📡 Telemetry from ${data.id}: Lat ${data.lat}, Lng ${data.lng}`);
             // Broadcast to specific roles and also a generic live event
             this.broadcastToRole('L2', 'live:tourist_update', data);
@@ -72,33 +88,37 @@ export class SocketService {
             // Generic broadcast for dashboard map
             this.io?.emit('live:tourist_update', data);
 
-            // Real-time Geofence Breach Detection (Ray-Casting Algorithm)
-            const fences = GeofenceService.mockGeofences;
-            if (fences) {
-                for (const gf of fences) {
-                    if (gf.active && isPointInPolygon({lat: data.lat, lng: data.lng}, gf.coordinates)) {
-                        const payload = {
-                            touristId: data.id,
-                            touristName: data.name,
-                            geofenceId: gf.id,
-                            geofenceName: gf.name,
-                            riskLevel: gf.riskLevel,
-                            type: gf.type,
-                            timestamp: new Date()
-                        };
-                        
-                        // 1) Emit to Administrators via Roles
-                        this.broadcastToRole('L2', 'alert:geofence_breach', payload);
-                        this.broadcastToRole('L3', 'alert:geofence_breach', payload);
-                        this.broadcastToRole('L4', 'alert:geofence_breach', payload);
-                        
-                        // 2) Emit directly to the Tourist who breached it
-                        socket.emit('alert:user_geofence_breach', payload);
-                        
-                        // Fallback global targeting
-                        this.io?.to(`user:${data.id}`).emit('alert:user_geofence_breach', payload);
+            // Real-time Geofence Breach Detection
+            try {
+                const fences = await getFences();
+                if (fences) {
+                    for (const gf of fences) {
+                        if (isPointInPolygon({lat: data.lat, lng: data.lng}, gf.coordinates)) {
+                            const payload = {
+                                touristId: data.id,
+                                touristName: data.name,
+                                geofenceId: gf.id,
+                                geofenceName: gf.name,
+                                riskLevel: gf.riskLevel,
+                                type: gf.type,
+                                timestamp: new Date()
+                            };
+                            
+                            // 1) Emit to Administrators via Roles
+                            this.broadcastToRole('L2', 'alert:geofence_breach', payload);
+                            this.broadcastToRole('L3', 'alert:geofence_breach', payload);
+                            this.broadcastToRole('L4', 'alert:geofence_breach', payload);
+                            
+                            // 2) Emit directly to the Tourist who breached it
+                            socket.emit('alert:user_geofence_breach', payload);
+                            
+                            // Fallback global targeting
+                            this.io?.to(`user:${data.id}`).emit('alert:user_geofence_breach', payload);
+                        }
                     }
                 }
+            } catch (err) {
+                console.error('Error in geofence breach detection:', err);
             }
         });
 

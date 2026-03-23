@@ -30,6 +30,7 @@ import usersRouter from './features/users/users.controller';
 import touristIdRouter from './features/tourist-id/tourist-id.controller';
 import geofenceRouter from './features/geofences/geofence.controller';
 import authRouter from './features/auth/auth.controller';
+import touristsRouter from './features/tourists/tourists.controller';
 
 app.get('/', (req, res) => {
     res.json({ message: 'Smart Tourist Safety Backend API is Running 🚀' });
@@ -42,6 +43,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/tourist-id', touristIdRouter);
 app.use('/api/geofences', geofenceRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/tourists', touristsRouter);
 
 // Socket.io Connection
 import { SocketService } from './shared/utils/socket.service';

@@ -5,21 +5,24 @@ import { MessageSquare, AlertCircle, Clock, ChevronRight } from 'lucide-react-na
 import { useRouter, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import axios from 'axios';
-import { DEFAULT_TOURIST } from '../../constants/User';
+import { useAtom } from 'jotai';
+import { userAtom } from '../../atoms/auth';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function IncidentsScreen() {
     const router = useRouter();
+    const [user] = useAtom(userAtom);
     const [incidents, setIncidents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useFocusEffect(
         useCallback(() => {
             const fetchIncidents = async () => {
+                if (!user?.id) return;
                 try {
                     setLoading(true);
-                    const res = await axios.get(`${BACKEND_URL}/api/incidents/tourist/${DEFAULT_TOURIST.id}`);
+                    const res = await axios.get(`${BACKEND_URL}/api/incidents/tourist/${user.id}`);
                     if (res.data.success) {
                         setIncidents(res.data.data);
                     }
@@ -30,7 +33,7 @@ export default function IncidentsScreen() {
                 }
             };
             fetchIncidents();
-        }, [])
+        }, [user])
     );
 
     return (
