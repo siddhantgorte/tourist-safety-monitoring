@@ -3,9 +3,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import "../global.css";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { PanicButton } from '@/components/shared/PanicButton';
@@ -29,6 +30,13 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
@@ -40,27 +48,42 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
+  if (!loaded || !isReady) {
     return null;
   }
 
+
   return <RootLayoutNav />;
 }
+
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/phone" options={{ title: 'Login', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="auth/otp" options={{ title: 'Verify', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Terms & Safety' }} />
-        <Stack.Screen name="incident-report" options={{ headerShown: false, presentation: 'card' }} />
-      </Stack>
-    </ThemeProvider>
-
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff',
+            },
+            headerTintColor: colorScheme === 'dark' ? '#f8fafc' : '#0f172a',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/phone" options={{ title: 'Login', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="auth/otp" options={{ title: 'Verify', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Terms & Safety' }} />
+          <Stack.Screen name="incident-report" options={{ headerShown: false, presentation: 'card' }} />
+        </Stack>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
+

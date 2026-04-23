@@ -30,9 +30,11 @@ export class AuthService {
             id: user.id,
             username: user.username,
             roleId: user.roleId,
+            role: user.role.name, // Normalized role field
             roleName: user.role.name,
             regionId: user.regionId
         };
+
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
@@ -81,8 +83,10 @@ export class AuthService {
         const token = jwt.sign({ 
             id: tourist.id, 
             email: (tourist as any).email, 
-            role: 'tourist' 
+            role: 'tourist',
+            fullName: data.fullName
         }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
 
         // Omit password hash
         const { password, ...touristWithoutPassword } = tourist as any;
@@ -108,8 +112,10 @@ export class AuthService {
         const token = jwt.sign({ 
             id: tourist.id, 
             email: (tourist as any).email, 
-            role: 'tourist' 
+            role: 'tourist',
+            fullName: (tourist as any).fullName
         }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
 
         // Omit password hash
         const { password, ...touristWithoutPassword } = tourist as any;
@@ -118,6 +124,56 @@ export class AuthService {
             user: {
                 ...touristWithoutPassword,
                 role: 'tourist'
+            },
+            token
+        };
+    }
+
+    async guestLogin() {
+        // Find Savita by full name
+        const user = await prisma.user.findFirst({
+            where: {
+                fullName: {
+                    contains: 'Savita',
+                    mode: 'insensitive'
+                }
+            },
+            include: {
+                role: true,
+                region: { select: { id: true, name: true } }
+            }
+        });
+
+        if (!user) {
+            throw new Error('Guest user (Savita) not found in database');
+        }
+
+        // Create JWT payload
+        const payload = {
+            id: user.id,
+            username: user.username,
+            roleId: user.roleId,
+            role: user.role.name,
+            roleName: user.role.name,
+            regionId: user.regionId
+        };
+
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+        // Update online status
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { isOnline: true }
+        });
+
+        // Omit the password hash
+        const { password, ...userWithoutPassword } = user;
+
+        return {
+            user: {
+                ...userWithoutPassword,
+                roleName: user.role.name,
+                regionName: user.region?.name || null
             },
             token
         };

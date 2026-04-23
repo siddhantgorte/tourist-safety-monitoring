@@ -27,7 +27,10 @@ interface Notification {
   message: string;
   timestamp: Date;
   entityId: string;
+  touristId?: string;
+  geofenceId?: string;
   read: boolean;
+  acknowledged?: boolean;
 }
 
 export function LiveNotifications() {
@@ -81,7 +84,10 @@ export function LiveNotifications() {
         message: `${data.touristName} crossed into ${data.geofenceName} (${data.type})`,
         timestamp: new Date(data.timestamp),
         entityId: data.geofenceId,
-        read: false
+        geofenceId: data.geofenceId,
+        touristId: data.touristId,
+        read: false,
+        acknowledged: false
       };
 
       setNotifications(prev => [newNotif, ...prev].slice(0, 10));
@@ -96,6 +102,14 @@ export function LiveNotifications() {
       audioRef.current?.play().catch(e => console.log('Audio play blocked:', e));
     });
 
+    socketRef.current.on('admin:breach_acknowledged', (data: { userId: string, geofenceId: string }) => {
+        setNotifications(prev => prev.map(n => 
+            (n.touristId === data.userId && n.geofenceId === data.geofenceId) 
+            ? { ...n, acknowledged: true } 
+            : n
+        ));
+    });
+
     return () => {
       socketRef.current?.disconnect();
     }
@@ -107,6 +121,16 @@ export function LiveNotifications() {
 
   const navigateToIncident = (id: string) => {
     router.push(`/incidents/${id}`);
+  };
+  const handleAcknowledge = (e: React.MouseEvent, notif: Notification) => {
+    e.stopPropagation();
+    if (notif.touristId && notif.geofenceId) {
+        socketRef.current?.emit('admin:acknowledge_breach', {
+            userId: notif.touristId,
+            geofenceId: notif.geofenceId
+        });
+        toast.info("Breach acknowledged. Further alerts muted.");
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -156,9 +180,24 @@ export function LiveNotifications() {
                   <span className="text-[10px] text-muted-foreground">{new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <p className="text-sm line-clamp-2 text-foreground/80">{notif.message}</p>
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-primary font-medium uppercase">
-                  <ExternalLink size={10} />
-                  <span>View Details</span>
+                <div className="flex items-center justify-between w-full mt-2">
+                    <div className="flex items-center gap-1 text-[10px] text-primary font-medium uppercase">
+                        <ExternalLink size={10} />
+                        <span>View Details</span>
+                    </div>
+                    {notif.type === 'ZONE BREACH' && !notif.acknowledged && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-6 px-2 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
+                            onClick={(e) => handleAcknowledge(e, notif)}
+                        >
+                            Acknowledge
+                        </Button>
+                    )}
+                    {notif.acknowledged && (
+                        <span className="text-[10px] text-muted-foreground italic font-medium">Muted</span>
+                    )}
                 </div>
               </DropdownMenuItem>
             ))

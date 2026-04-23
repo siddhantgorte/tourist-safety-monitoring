@@ -64,6 +64,7 @@ export function RecentIncidents() {
           <div
             key={incident.id}
             className="p-4 rounded-lg bg-secondary/50 hover:bg-secondary/80 transition-colors cursor-pointer border border-border/50"
+            onClick={() => router.push(`/incidents/${incident.id}`)}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">

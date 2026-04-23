@@ -36,6 +36,24 @@ export default function LoginPage() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await api.post('/auth/guest-login');
+      if (response.data.success) {
+        login(response.data.data.token, response.data.data.user);
+      } else {
+        setError(response.data.message || 'Guest login failed');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to connect to server');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
       <div className="w-full max-w-md space-y-8">
@@ -88,6 +106,25 @@ export default function LoginPage() {
               </div>
               <Button type="submit" className="w-full mt-6" disabled={isLoading}>
                 {isLoading ? 'Authenticating...' : 'Secure Login'}
+              </Button>
+              
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-800" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-slate-900 px-2 text-slate-500">Or continue with</span>
+                </div>
+              </div>
+
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full border-slate-800 hover:bg-slate-800 text-slate-300"
+                onClick={handleGuestLogin}
+                disabled={isLoading}
+              >
+                Login with Guest
               </Button>
             </form>
           </CardContent>

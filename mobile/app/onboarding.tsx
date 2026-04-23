@@ -11,8 +11,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function OnboardingScreen() {
-    const router = useRouter();
+    let router: any = null;
+    try {
+        router = useRouter();
+    } catch (e) {
+        // Fallback for when context is not ready
+        console.warn('Navigation context not ready in OnboardingScreen');
+    }
+    
     const setToken = useSetAtom(tokenAtom);
+
     const setUser = useSetAtom(userAtom);
     
     const [step, setStep] = useState(1);
@@ -108,13 +116,29 @@ export default function OnboardingScreen() {
                         <View className="flex-row items-center justify-between mb-12 px-2">
                             {[1, 2, 3].map((s) => (
                                 <View key={s} className="flex-row items-center flex-1">
-                                    <View className={`w-10 h-10 rounded-full items-center justify-center border-2 ${step >= s ? 'bg-emerald-600 border-emerald-600 shadow-md' : 'bg-white border-slate-200'}`}>
+                                    <View 
+                                        className={`w-10 h-10 rounded-full items-center justify-center border-2`}
+                                        style={{
+                                            backgroundColor: step >= s ? '#059669' : '#ffffff',
+                                            borderColor: step >= s ? '#059669' : '#e2e8f0',
+                                            shadowColor: step >= s ? '#059669' : 'transparent',
+                                            shadowOpacity: step >= s ? 0.3 : 0,
+                                            shadowRadius: 4,
+                                            elevation: step >= s ? 4 : 0
+                                        }}
+                                    >
                                         {step > s ? (
                                             <CheckCircle2 size={24} color="white" />
                                         ) : (
-                                            <Text className={`font-bold ${step >= s ? 'text-white' : 'text-slate-400'}`}>{s}</Text>
+                                            <Text 
+                                                className="font-bold"
+                                                style={{ color: step >= s ? '#ffffff' : '#94a3b8' }}
+                                            >
+                                                {s}
+                                            </Text>
                                         )}
                                     </View>
+
                                     {s < 3 && <View className={`flex-1 h-1 mx-2 rounded-full ${step > s ? 'bg-emerald-600' : 'bg-slate-100'}`} />}
                                 </View>
                             ))}

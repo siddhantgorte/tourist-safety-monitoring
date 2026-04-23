@@ -2,16 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Info } from 'lucide-react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Polygon, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
+import axios from 'axios';
+import Constants from 'expo-constants';
+
+const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [geofences, setGeofences] = useState<any[]>([]);
 
     useEffect(() => {
         (async () => {
+            // 1. Get Location
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 setErrorMsg('Permission to access location was denied');
@@ -21,6 +27,17 @@ export default function MapScreen() {
 
             let loc = await Location.getCurrentPositionAsync({});
             setLocation(loc);
+
+            // 2. Fetch Geofences
+            try {
+                const response = await axios.get(`${BACKEND_URL}/api/geofences`);
+                if (response.data.success) {
+                    setGeofences(response.data.data);
+                }
+            } catch (err) {
+                console.error('Error fetching geofences:', err);
+            }
+
             setLoading(false);
         })();
     }, []);
@@ -67,13 +84,41 @@ export default function MapScreen() {
                                 </View>
                             </Marker>
                         )}
-                        
-                        {/* Simulation of a Geo-fence Zone */}
-                        <Marker
-                            coordinate={{ latitude: 15.5494, longitude: 73.7535 }}
-                            title="Calangute Safety Hub"
-                            description="Main monitoring station"
-                        />
+
+                        {geofences.map((gf) => (
+                            <React.Fragment key={gf.id}>
+                                <Polygon
+                                    coordinates={gf.coordinates.map((c: any) => ({
+                                        latitude: c.lat,
+                                        longitude: c.lng
+                                    }))}
+                                    fillColor={
+                                        gf.type === 'DANGER' ? 'rgba(239, 68, 68, 0.3)' :
+                                        gf.type === 'RESTRICTED' ? 'rgba(245, 158, 11, 0.3)' :
+                                        'rgba(16, 185, 129, 0.3)'
+                                    }
+                                    strokeColor={
+                                        gf.type === 'DANGER' ? 'rgb(239, 68, 68)' :
+                                        gf.type === 'RESTRICTED' ? 'rgb(245, 158, 11)' :
+                                        'rgb(16, 185, 129)'
+                                    }
+                                    strokeWidth={2}
+                                />
+                                {/* Center Marker for Labels */}
+                                <Marker
+                                    coordinate={{
+                                        latitude: gf.coordinates[0].lat,
+                                        longitude: gf.coordinates[0].lng
+                                    }}
+                                    title={gf.name}
+                                    description={`${gf.type} ZONE`}
+                                >
+                                    <View className="bg-white/90 px-2 py-1 rounded-md border border-slate-200">
+                                        <Text className="text-[10px] font-bold text-slate-800">{gf.name}</Text>
+                                    </View>
+                                </Marker>
+                            </React.Fragment>
+                        ))}
                     </MapView>
                 )}
             </View>

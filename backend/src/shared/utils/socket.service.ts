@@ -19,6 +19,8 @@ export class SocketService {
     private static instance: SocketService;
     private io: Server | null = null;
     private connectedUsers: Map<string, string> = new Map(); // socketId -> userId
+    private lastAlerted: Map<string, number> = new Map(); // key: userId:geofenceId -> timestamp
+    private mutedBreaches: Set<string> = new Set(); // key: userId:geofenceId
 
     private constructor() { }
 
@@ -93,33 +95,65 @@ export class SocketService {
                 const fences = await getFences();
                 if (fences) {
                     for (const gf of fences) {
-                        if (isPointInPolygon({lat: data.lat, lng: data.lng}, gf.coordinates)) {
-                            const payload = {
-                                touristId: data.id,
-                                touristName: data.name,
-                                geofenceId: gf.id,
-                                geofenceName: gf.name,
-                                riskLevel: gf.riskLevel,
-                                type: gf.type,
-                                timestamp: new Date()
-                            };
-                            
-                            // 1) Emit to Administrators via Roles
-                            this.broadcastToRole('L2', 'alert:geofence_breach', payload);
-                            this.broadcastToRole('L3', 'alert:geofence_breach', payload);
-                            this.broadcastToRole('L4', 'alert:geofence_breach', payload);
-                            
-                            // 2) Emit directly to the Tourist who breached it
-                            socket.emit('alert:user_geofence_breach', payload);
-                            
-                            // Fallback global targeting
-                            this.io?.to(`user:${data.id}`).emit('alert:user_geofence_breach', payload);
+                        const inPolygon = isPointInPolygon({lat: data.lat, lng: data.lng}, gf.coordinates);
+                        const breachKey = `${data.id}:${gf.id}`;
+
+                        if (inPolygon) {
+                            // Check for throttling and muting
+                            const now = Date.now();
+                            const lastTime = this.lastAlerted.get(breachKey) || 0;
+                            const COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
+                            if (now - lastTime > COOLDOWN && !this.mutedBreaches.has(breachKey)) {
+                                const payload = {
+                                    touristId: data.id,
+                                    touristName: data.name,
+                                    geofenceId: gf.id,
+                                    geofenceName: gf.name,
+                                    riskLevel: gf.riskLevel,
+                                    type: gf.type,
+                                    timestamp: new Date()
+                                };
+                                
+                                // 1) Emit to Administrators via Roles
+                                this.broadcastToRole('L2', 'alert:geofence_breach', payload);
+                                this.broadcastToRole('L3', 'alert:geofence_breach', payload);
+                                this.broadcastToRole('L4', 'alert:geofence_breach', payload);
+                                
+                                // 2) Emit directly to the Tourist who breached it
+                                socket.emit('alert:user_geofence_breach', payload);
+                                
+                                // Fallback global targeting
+                                this.io?.to(`user:${data.id}`).emit('alert:user_geofence_breach', payload);
+
+                                // Update last alerted time
+                                this.lastAlerted.set(breachKey, now);
+                            }
+                        } else {
+                            // If user is outside, remove from muted breaches so it can trigger again on re-entry
+                            if (this.mutedBreaches.has(breachKey)) {
+                                this.mutedBreaches.delete(breachKey);
+                                console.log(`🔓 Breach unmuted (user left zone): ${breachKey}`);
+                            }
+                            // Also clear alert history if they've been out for a while (optional)
                         }
                     }
                 }
             } catch (err) {
                 console.error('Error in geofence breach detection:', err);
             }
+        });
+
+        // Dashboard Acknowledge Breach
+        socket.on('admin:acknowledge_breach', (data: { userId: string, geofenceId: string }) => {
+            const breachKey = `${data.userId}:${data.geofenceId}`;
+            this.mutedBreaches.add(breachKey);
+            console.log(`🔕 Breach muted by admin: ${breachKey}`);
+            
+            // Broadcast acknowledgment back to admins so UI can update
+            this.broadcastToRole('L2', 'admin:breach_acknowledged', data);
+            this.broadcastToRole('L3', 'admin:breach_acknowledged', data);
+            this.broadcastToRole('L4', 'admin:breach_acknowledged', data);
         });
 
         // Handle Panic

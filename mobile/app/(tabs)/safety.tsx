@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Constants from 'expo-constants';
-import { View, Text, ScrollView, Animated } from 'react-native';
+import { View, Text, ScrollView, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, Zap, Wind, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -37,6 +37,7 @@ export default function SafetyScreen() {
         network: 'Live',
         anomaly: 'Normal'
     });
+    const [activeAlert, setActiveAlert] = useState<any | null>(null);
 
     const lastLocation = useRef<Location.LocationObject | null>(null);
     const socketRef = useRef<any>(null);
@@ -55,6 +56,15 @@ export default function SafetyScreen() {
         socketRef.current.on('connect', () => {
             console.log('✅ Connected to Safety SOC');
         });
+
+        socketRef.current.on('alert:user_geofence_breach', (data: any) => {
+            console.log('⚠️ Breach alert received on mobile:', data);
+            setActiveAlert(data);
+        });
+
+        // Clear alert if backend says we left (though we could also do it locally if we had the polygons)
+        // For now, let's just allow a 5-min auto-dismiss or something if we want, 
+        // but the backend throttling will handle the noise.
 
         let locationSubscription: any;
 
@@ -143,6 +153,25 @@ export default function SafetyScreen() {
         <SafeAreaView className="flex-1 bg-white" edges={['top']}>
             <ScrollView className="flex-1">
                 <View className="p-6">
+                    {activeAlert && (
+                        <View className={`mb-8 p-4 rounded-3xl border-2 ${activeAlert.riskLevel === 'CRITICAL' ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-500'} flex-row items-center gap-4`}>
+                            <View className={`w-12 h-12 rounded-full items-center justify-center ${activeAlert.riskLevel === 'CRITICAL' ? 'bg-red-500' : 'bg-amber-500'}`}>
+                                <Zap size={24} color="white" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className={`font-bold ${activeAlert.riskLevel === 'CRITICAL' ? 'text-red-900' : 'text-amber-900'}`}>
+                                    {activeAlert.riskLevel === 'CRITICAL' ? 'DANGER ZONE' : 'RESTRICTED AREA'}
+                                </Text>
+                                <Text className="text-slate-600 text-xs">
+                                    You have entered {activeAlert.geofenceName}. Please follow all safety protocols.
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setActiveAlert(null)}>
+                                <Text className="text-slate-400 font-bold p-2">✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     <View className="items-center mb-8">
                         <View className="w-24 h-24 bg-slate-50 rounded-full items-center justify-center border border-slate-100 mb-4 shadow-sm">
                             <Shield size={48} color="#10b981" fill="#10b98133" />

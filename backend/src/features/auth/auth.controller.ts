@@ -23,6 +23,17 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/auth/guest-login
+router.post('/guest-login', async (req: Request, res: Response) => {
+    try {
+        const data = await authService.guestLogin();
+        res.json({ success: true, data });
+    } catch (error: any) {
+        console.error('Guest login error:', error.message);
+        res.status(500).json({ success: false, message: error.message || 'Guest login failed' });
+    }
+});
+
 // POST /api/auth/tourist/signup
 router.post('/tourist/signup', async (req: Request, res: Response) => {
     try {
@@ -68,9 +79,30 @@ router.post('/tourist/login', async (req: Request, res: Response) => {
 // GET /api/auth/me
 router.get('/me', authenticateToken, async (req: Request, res: Response) => {
     try {
-        // req.user corresponds to the JWT payload
-        const userId = (req as any).user.id;
+        const decodedUser = (req as any).user;
+        const userId = decodedUser.id;
+        const role = decodedUser.role || decodedUser.roleName;
+
+        if (role === 'tourist') {
+            const tourist = await prisma.tourist.findUnique({
+                where: { id: userId }
+            });
+
+            if (!tourist) {
+                return res.status(404).json({ success: false, message: 'Tourist profile not found' });
+            }
+
+            const { password, ...touristWithoutPassword } = tourist as any;
+            return res.json({
+                success: true,
+                data: {
+                    ...touristWithoutPassword,
+                    role: 'tourist'
+                }
+            });
+        }
         
+        // Otherwise handle as official staff User
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: {
@@ -93,8 +125,10 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
             } 
         });
     } catch (error) {
+        console.error('Error fetching /me:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch user profile' });
     }
 });
+
 
 export default router;

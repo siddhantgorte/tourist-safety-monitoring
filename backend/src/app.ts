@@ -70,4 +70,16 @@ async function startServer() {
 
 startServer();
 
+// Global Error Handling to prevent crashes on transient DB errors
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process, let nodemon/it keep running
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // You might want to exit here if it's a memory leak, but for DB errors we try to stay alive
+});
+
 export { app, io };
+
