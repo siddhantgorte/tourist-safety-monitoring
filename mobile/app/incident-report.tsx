@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Constants from 'expo-constants';
 import { io, Socket } from 'socket.io-client';
+
 import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Send, Camera, Image as ImageIcon, AlertCircle, X, CheckCircle, ChevronLeft, ShieldAlert } from 'lucide-react-native';
@@ -9,8 +9,8 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import { useAtom } from 'jotai';
 import { userAtom } from '../atoms/auth';
+import { BACKEND_URL } from '../constants/Config';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 const INCIDENT_TYPES = [
     { label: 'Theft / Crime', value: 'THEFT', icon: 'shield-off' },

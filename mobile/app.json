@@ -17,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.turistsafety.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -34,6 +35,13 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "backendUrl": "https://tourist-safety-monitoring-system.onrender.com",
+      "router": {},
+      "eas": {
+        "projectId": "05d68708-03e8-40c7-ad26-959a25490ed1"
+      }
     }
   }
 }

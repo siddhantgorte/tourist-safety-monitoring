@@ -5,9 +5,8 @@ import { MapPin, Info } from 'lucide-react-native';
 import MapView, { Marker, Polygon, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
-import Constants from 'expo-constants';
+import { BACKEND_URL } from '../../constants/Config';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
